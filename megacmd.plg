@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.13">
+<!ENTITY version "2026.07.05i">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,7 +14,7 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
-###2026.07.13
+###2026.07.05i
 - Fixed: mega-* commands were only reachable via /opt/megacmd/bin (not on PATH) and via the
   /etc/profile.d convenience script, which only applies to login shells -- the Unraid webGUI
   terminal (and some SSH configurations) opens a non-login shell, so mega-whoami etc. genuinely
@@ -23,7 +23,7 @@
   so it always talks to the same persistent session the background service uses. Removed the old
   profile.d script (superseded) and the megacmd() helper function it defined.
 
-###2026.07.12
+###2026.07.05h
 - Replaced table-based form layouts with label-above-field groups: fixes the Remote path label
   rendering vertically centered/misaligned against its two stacked controls (a table-cell
   vertical-align artifact), and adds a real gap between the Local path and Remote path fields.
@@ -31,7 +31,7 @@
   arbitrary cap; long values ellipsize only if the actual rendered width is too small to show them,
   rather than being pre-truncated server-side regardless of available space.
 
-###2026.07.11
+###2026.07.05g
 - Fixed: the previous select-width fix wasn't enough -- the remote folder dropdown and its text
   field were still side by side and together wider than their container, still forcing the whole
   page to scroll horizontally. They (and all text/password inputs) are now stacked full-width
@@ -39,14 +39,14 @@
 - Remove sync's Remove button now sits below its dropdown instead of beside it.
 - Account e-mail now rendered in a code-block style (monospace, subtle background chip).
 
-###2026.07.10
+###2026.07.05f
 - Fixed: megacmd.page required its own include/common.php via __DIR__, which resolves to Unraid's
   page-rendering internals (not the plugin's own folder) since .page content runs through eval(),
   not a normal file include. Would have fataled with "failed to open stream" on the live site.
   Switched to a hardcoded absolute path, matching the convention other Unraid plugins use for
   exactly this reason.
 
-###2026.07.09
+###2026.07.05e
 - Fixed: page-wide horizontal overflow caused by a dropdown auto-sizing to its longest option
   text (long sync paths) -- long labels are now truncated for display and dropdowns are width-capped.
 - Fixed: every visit/refresh of the page was replaying the last form action (e.g. re-running
@@ -55,17 +55,17 @@
   endpoint (include/action.php); the page itself is GET-only and never re-executes an action on
   reload, with the result shown once via a session flash message.
 
-###2026.07.08
+###2026.07.05d
 - Cosmetic pass: account e-mail now visually emphasized; service status capitalized (Running/Stopped);
   each section (Service/Account/Current syncs/Add sync/Remove sync) is now its own visually separated card;
   Remote path picker and text field grouped together with a clarifying hint instead of feeling like two
   conflicting controls; Remove sync is now a populated dropdown of existing syncs instead of free-text ID entry.
 
-###2026.07.07
+###2026.07.05c
 - Local path in Add Sync now uses Unraid's own embedded file explorer widget (jquery.filetree,
   the same one Docker/VM path pickers use) rooted at /mnt/user, instead of a plain share dropdown.
 
-###2026.07.06
+###2026.07.05b
 - Added a local share dropdown (populated from Unraid's own share list) and a MEGA remote-folder
   dropdown (queried live via mega-ls) to the Add Sync form, so paths can be picked instead of typed
   from scratch. Both still feed into an editable text field for deeper subfolders.
