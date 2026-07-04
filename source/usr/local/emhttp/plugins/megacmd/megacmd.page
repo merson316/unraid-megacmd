@@ -3,7 +3,7 @@ Title="MEGAcmd"
 Icon="fa-cloud-upload-alt"
 ---
 <?
-require_once __DIR__ . "/include/common.php";
+require_once "/usr/local/emhttp/plugins/megacmd/include/common.php";
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $message = $_SESSION['megacmd_message'] ?? "";

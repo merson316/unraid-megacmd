@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.09">
+<!ENTITY version "2026.07.10">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,13 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.10
+- Fixed: megacmd.page required its own include/common.php via __DIR__, which resolves to Unraid's
+  page-rendering internals (not the plugin's own folder) since .page content runs through eval(),
+  not a normal file include. Would have fataled with "failed to open stream" on the live site.
+  Switched to a hardcoded absolute path, matching the convention other Unraid plugins use for
+  exactly this reason.
+
 ###2026.07.09
 - Fixed: page-wide horizontal overflow caused by a dropdown auto-sizing to its longest option
   text (long sync paths) -- long labels are now truncated for display and dropdowns are width-capped.
@@ -62,7 +69,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>b63768488def92355482c4e722904a48</MD5>
+    <MD5>cadb0c315d4385630d504cb7ae754ce6</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
