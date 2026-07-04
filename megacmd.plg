@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.08">
+<!ENTITY version "2026.07.09">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,15 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.09
+- Fixed: page-wide horizontal overflow caused by a dropdown auto-sizing to its longest option
+  text (long sync paths) -- long labels are now truncated for display and dropdowns are width-capped.
+- Fixed: every visit/refresh of the page was replaying the last form action (e.g. re-running
+  addsync, producing a repeated "Already exists" error) because forms POSTed directly back to the
+  page itself with no way to redirect afterward. All actions now go through a dedicated AJAX
+  endpoint (include/action.php); the page itself is GET-only and never re-executes an action on
+  reload, with the result shown once via a session flash message.
+
 ###2026.07.08
 - Cosmetic pass: account e-mail now visually emphasized; service status capitalized (Running/Stopped);
   each section (Service/Account/Current syncs/Add sync/Remove sync) is now its own visually separated card;
@@ -53,7 +62,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>694c56876241aa72410ac4fd2fd2d233</MD5>
+    <MD5>b63768488def92355482c4e722904a48</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
