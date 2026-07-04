@@ -21,11 +21,6 @@ function serviceRunning() {
   return $ret === 0;
 }
 
-function getUserShares() {
-  $shares = @parse_ini_file('/usr/local/emhttp/state/shares.ini', true);
-  return $shares ? array_keys($shares) : [];
-}
-
 // Lists immediate subfolders of a remote MEGA path (non-recursive).
 function megaListRemoteDirs($remotepath) {
   $r = megaExec("mega-ls -l " . escapeshellarg($remotepath));
@@ -91,9 +86,10 @@ $running = serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
-$userShares = $loggedIn ? getUserShares() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 ?>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<script src="/webGui/javascript/jquery.filetree.js" charset="utf-8"></script>
 <style>
 .megacmd-box { margin-bottom: 20px; }
 .megacmd-box h3 { margin-bottom: 8px; }
@@ -156,17 +152,14 @@ $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
     <input type="hidden" name="action" value="addsync">
     <table>
       <tr>
-        <td>Local share</td>
+        <td>Local path</td>
         <td>
-          <select onchange="if(this.value) document.getElementById('mc_localpath').value='/mnt/user/'+this.value;">
-            <option value="">-- pick a share --</option>
-            <? foreach ($userShares as $share): ?>
-              <option value="<?= htmlspecialchars($share) ?>"><?= htmlspecialchars($share) ?></option>
-            <? endforeach; ?>
-          </select>
+          <input type="text" id="mc_localpath" name="localpath" size="50" autocomplete="off" spellcheck="false"
+                 data-pickfolders="true" data-pickfilter="HIDE_FILES_FILTER"
+                 data-pickroot="<?=is_dir('/mnt/user') ? '/mnt/user' : '/mnt'?>"
+                 placeholder="Click to select a folder">
         </td>
       </tr>
-      <tr><td>Local path</td><td><input type="text" id="mc_localpath" name="localpath" size="50" placeholder="/mnt/user/Backups/example"></td></tr>
       <tr>
         <td>Remote folder</td>
         <td>
@@ -199,4 +192,12 @@ $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
   <h3>Last command output</h3>
   <div class="megacmd-msg"><?= htmlspecialchars($message) ?></div>
 </div>
+<? endif; ?>
+
+<? if ($loggedIn): ?>
+<script>
+$(function() {
+  $('#mc_localpath').fileTreeAttach();
+});
+</script>
 <? endif; ?>
