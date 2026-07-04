@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.12">
+<!ENTITY version "2026.07.13">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,15 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.13
+- Fixed: mega-* commands were only reachable via /opt/megacmd/bin (not on PATH) and via the
+  /etc/profile.d convenience script, which only applies to login shells -- the Unraid webGUI
+  terminal (and some SSH configurations) opens a non-login shell, so mega-whoami etc. genuinely
+  produced "command not found" there, exactly as reported. Every mega-* command is now symlinked
+  into /usr/local/bin (already on PATH for every shell) via a wrapper that sets HOME/LD_LIBRARY_PATH
+  so it always talks to the same persistent session the background service uses. Removed the old
+  profile.d script (superseded) and the megacmd() helper function it defined.
+
 ###2026.07.12
 - Replaced table-based form layouts with label-above-field groups: fixes the Remote path label
   rendering vertically centered/misaligned against its two stacked controls (a table-cell
@@ -85,7 +94,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>ec89684debf11b60ac840f78c5043c76</MD5>
+    <MD5>8ec3bb4b130d88d79760b20e560587d5</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -98,11 +107,16 @@ rm -f /tmp/megacmd-fetch.sh
 </INLINE>
   </FILE>
 
-  <!-- Post-install: prepare persistent storage and start the service if the array is already up -->
+  <!-- Post-install: prepare persistent storage, put every mega-* command on PATH via a
+       wrapper (so a plain `mega-whoami` in any terminal talks to the same persistent
+       session the service uses), and start the service if the array is already up -->
   <FILE Run="/bin/bash">
     <INLINE>
 mkdir -p /mnt/user/appdata/megacmd/home
-chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs 2&gt;/dev/null
+chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs &plugdir;/megacmd-wrapper.sh 2&gt;/dev/null
+for f in /opt/megacmd/bin/mega-*; do
+  ln -sf &plugdir;/megacmd-wrapper.sh "/usr/local/bin/$(basename "$f")"
+done
 if mountpoint -q /mnt/user 2&gt;/dev/null || [ -d /mnt/user0 ]; then
   &plugdir;/event/disks_mounted
 fi
@@ -110,16 +124,20 @@ echo ""
 echo "----------------------------------------------------"
 echo " MEGAcmd &megacmd_version; installed."
 echo " Configure login and syncs under Utilities > MEGAcmd."
+echo " mega-* commands are now on PATH in any terminal."
 echo "----------------------------------------------------"
 echo ""
 </INLINE>
   </FILE>
 
-  <!-- Remove: stop the service, remove our tracked package and the fetched MEGAcmd binaries,
-       but keep appdata (login/sync state) intact -->
+  <!-- Remove: stop the service, remove our tracked package, the fetched MEGAcmd binaries and
+       the /usr/local/bin wrapper symlinks, but keep appdata (login/sync state) intact -->
   <FILE Run="/bin/bash" Method="remove">
     <INLINE>
 /etc/rc.d/rc.megacmd stop 2&gt;/dev/null
+for f in /usr/local/bin/mega-*; do
+  [ "$(readlink "$f" 2&gt;/dev/null)" = "&plugdir;/megacmd-wrapper.sh" ] &amp;&amp; rm -f "$f"
+done
 removepkg &name;-plugin-&version;-x86_64-1
 rm -rf /opt/megacmd
 rm -rf &plugdir;
