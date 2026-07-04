@@ -21,6 +21,24 @@ function serviceRunning() {
   return $ret === 0;
 }
 
+function getUserShares() {
+  $shares = @parse_ini_file('/usr/local/emhttp/state/shares.ini', true);
+  return $shares ? array_keys($shares) : [];
+}
+
+// Lists immediate subfolders of a remote MEGA path (non-recursive).
+function megaListRemoteDirs($remotepath) {
+  $r = megaExec("mega-ls -l " . escapeshellarg($remotepath));
+  $dirs = [];
+  foreach (explode("\n", $r["output"]) as $line) {
+    // Columns: FLAGS VERS SIZE DATE TIME NAME (NAME may itself contain spaces)
+    if (preg_match('/^(\S+)\s+\S+\s+\S+\s+\S+\s+\S+\s+(.*)$/', $line, $m) && $m[1][0] === 'd') {
+      $dirs[] = $m[2];
+    }
+  }
+  return $dirs;
+}
+
 $message = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -73,6 +91,8 @@ $running = serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
+$userShares = $loggedIn ? getUserShares() : [];
+$remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 ?>
 <style>
 .megacmd-box { margin-bottom: 20px; }
@@ -135,8 +155,30 @@ $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="addsync">
     <table>
-      <tr><td>Local path</td><td><input type="text" name="localpath" size="50" placeholder="/mnt/user/Backups/example"></td></tr>
-      <tr><td>Remote path</td><td><input type="text" name="remotepath" size="50" placeholder="/example"></td></tr>
+      <tr>
+        <td>Local share</td>
+        <td>
+          <select onchange="if(this.value) document.getElementById('mc_localpath').value='/mnt/user/'+this.value;">
+            <option value="">-- pick a share --</option>
+            <? foreach ($userShares as $share): ?>
+              <option value="<?= htmlspecialchars($share) ?>"><?= htmlspecialchars($share) ?></option>
+            <? endforeach; ?>
+          </select>
+        </td>
+      </tr>
+      <tr><td>Local path</td><td><input type="text" id="mc_localpath" name="localpath" size="50" placeholder="/mnt/user/Backups/example"></td></tr>
+      <tr>
+        <td>Remote folder</td>
+        <td>
+          <select onchange="if(this.value) document.getElementById('mc_remotepath').value=this.value;">
+            <option value="">-- pick a remote folder --</option>
+            <? foreach ($remoteDirs as $dir): ?>
+              <option value="/<?= htmlspecialchars($dir) ?>">/<?= htmlspecialchars($dir) ?></option>
+            <? endforeach; ?>
+          </select>
+        </td>
+      </tr>
+      <tr><td>Remote path</td><td><input type="text" id="mc_remotepath" name="remotepath" size="50" placeholder="/example"></td></tr>
     </table>
     <button type="submit">Add sync</button>
   </form>

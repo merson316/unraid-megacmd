@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.05">
+<!ENTITY version "2026.07.06">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,11 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.06
+- Added a local share dropdown (populated from Unraid's own share list) and a MEGA remote-folder
+  dropdown (queried live via mega-ls) to the Add Sync form, so paths can be picked instead of typed
+  from scratch. Both still feed into an editable text field for deeper subfolders.
+
 ###2026.07.05
 - Fixed: WebGUI forms were missing the required csrf_token field, so every button (login, sync,
   service start/stop) silently failed with a blank white page -- Unraid's webGUI blocks any POST
@@ -38,7 +43,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>6e47419e42fd62d0ea8eaa491f9d9f6d</MD5>
+    <MD5>06a834caa32e5f82762e0bf1ea97cdda</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
