@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.04">
+<!ENTITY version "2026.07.05">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,11 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05
+- Fixed: WebGUI forms were missing the required csrf_token field, so every button (login, sync,
+  service start/stop) silently failed with a blank white page -- Unraid's webGUI blocks any POST
+  request without a valid CSRF token and exits with no output.
+
 ###2026.07.04
 - Initial GitHub-tracked release.
 - Plugin logic (rc.d script, webGUI page, array event hooks) is hosted in this repo and installed as a
@@ -33,7 +38,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>93bc72ab9bf9f8221321dbb4cc94c300</MD5>
+    <MD5>6e47419e42fd62d0ea8eaa491f9d9f6d</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

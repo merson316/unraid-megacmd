@@ -88,12 +88,15 @@ $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
     <?= $running ? '<span class="megacmd-status-ok">running</span>' : '<span class="megacmd-status-bad">stopped</span>' ?>
   </p>
   <form method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="start"><button type="submit">Start</button>
   </form>
   <form method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="stop"><button type="submit">Stop</button>
   </form>
   <form method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
   </form>
 </div>
@@ -104,11 +107,13 @@ $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
   <? if ($loggedIn): ?>
     <p><?= htmlspecialchars($whoami) ?></p>
     <form method="post">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
       <input type="hidden" name="action" value="logout">
       <button type="submit">Logout</button>
     </form>
   <? else: ?>
     <form method="post">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
       <input type="hidden" name="action" value="login">
       <table>
         <tr><td>Email</td><td><input type="text" name="email" size="40"></td></tr>
@@ -127,6 +132,7 @@ $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
 
   <h4>Add sync</h4>
   <form method="post">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="addsync">
     <table>
       <tr><td>Local path</td><td><input type="text" name="localpath" size="50" placeholder="/mnt/user/Backups/example"></td></tr>
@@ -137,6 +143,7 @@ $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
 
   <h4>Remove sync</h4>
   <form method="post">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="removesync">
     <input type="text" name="syncid" placeholder="ID or local path" size="40">
     <button type="submit">Remove</button>
