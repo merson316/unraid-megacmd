@@ -40,17 +40,20 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   font-size: 1.05em;
 }
 .megacmd-box h4 { margin: 18px 0 8px; }
-.megacmd-box table { margin-bottom: 10px; }
-.megacmd-box td { padding: 3px 8px 3px 0; vertical-align: middle; }
-.megacmd-box select, .megacmd-box input[type=text], .megacmd-box input[type=password] {
+.megacmd-field { margin-bottom: 16px; }
+.megacmd-field label { display: block; margin-bottom: 4px; }
+.megacmd-field select, .megacmd-field input[type=text], .megacmd-field input[type=password] {
   display: block;
   width: 100%;
-  max-width: 400px;
   box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.megacmd-box select { margin-bottom: 6px; }
-.megacmd-box .megacmd-stack-btn { display: block; margin-top: 8px; }
-.megacmd-msg { background:#222; color:#0f0; padding:8px; white-space:pre; font-family:monospace; max-height:200px; max-width:100%; overflow:auto; }
+.megacmd-field select { margin-bottom: 6px; }
+.megacmd-field.megacmd-narrow input { max-width: 140px; }
+.megacmd-stack-btn { display: block; margin-top: 8px; }
+.megacmd-msg { background:#222; color:#0f0; padding:8px; width:100%; white-space:pre; font-family:monospace; max-height:200px; box-sizing:border-box; overflow:auto; }
 .megacmd-status-ok { color: #4a4; font-weight: bold; }
 .megacmd-status-bad { color: #a44; font-weight: bold; }
 .megacmd-email {
@@ -101,11 +104,9 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <form class="megacmd-ajax-form" method="post">
       <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
       <input type="hidden" name="action" value="login">
-      <table>
-        <tr><td>Email</td><td><input type="text" name="email" size="40"></td></tr>
-        <tr><td>Password</td><td><input type="password" name="password" size="40"></td></tr>
-        <tr><td>2FA code (if enabled)</td><td><input type="text" name="authcode" size="10"></td></tr>
-      </table>
+      <div class="megacmd-field"><label>Email</label><input type="text" name="email"></div>
+      <div class="megacmd-field"><label>Password</label><input type="password" name="password"></div>
+      <div class="megacmd-field megacmd-narrow"><label>2FA code (if enabled)</label><input type="text" name="authcode"></div>
       <button type="submit">Login</button>
     </form>
   <? endif; ?>
@@ -122,30 +123,24 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <form class="megacmd-ajax-form" method="post">
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="addsync">
-    <table>
-      <tr>
-        <td>Local path</td>
-        <td>
-          <input type="text" id="mc_localpath" name="localpath" size="50" autocomplete="off" spellcheck="false"
-                 data-pickfolders="true" data-pickfilter="HIDE_FILES_FILTER"
-                 data-pickroot="<?=is_dir('/mnt/user') ? '/mnt/user' : '/mnt'?>"
-                 placeholder="Click to select a folder">
-        </td>
-      </tr>
-      <tr>
-        <td>Remote path</td>
-        <td>
-          <select id="mc_remoteselect" onchange="if(this.value) document.getElementById('mc_remotepath').value=this.value;">
-            <option value="">-- existing folder --</option>
-            <? foreach ($remoteDirs as $dir): ?>
-              <option value="/<?= htmlspecialchars($dir) ?>">/<?= htmlspecialchars($dir) ?></option>
-            <? endforeach; ?>
-          </select>
-          <input type="text" id="mc_remotepath" name="remotepath" size="30" placeholder="/example">
-          <small class="megacmd-hint">Pick an existing remote folder, or type a path (a new folder name will be created).</small>
-        </td>
-      </tr>
-    </table>
+    <div class="megacmd-field">
+      <label>Local path</label>
+      <input type="text" id="mc_localpath" name="localpath" autocomplete="off" spellcheck="false"
+             data-pickfolders="true" data-pickfilter="HIDE_FILES_FILTER"
+             data-pickroot="<?=is_dir('/mnt/user') ? '/mnt/user' : '/mnt'?>"
+             placeholder="Click to select a folder">
+    </div>
+    <div class="megacmd-field">
+      <label>Remote path</label>
+      <select id="mc_remoteselect" onchange="if(this.value) document.getElementById('mc_remotepath').value=this.value;">
+        <option value="">-- existing folder --</option>
+        <? foreach ($remoteDirs as $dir): ?>
+          <option value="/<?= htmlspecialchars($dir) ?>">/<?= htmlspecialchars($dir) ?></option>
+        <? endforeach; ?>
+      </select>
+      <input type="text" id="mc_remotepath" name="remotepath" placeholder="/example">
+      <small class="megacmd-hint">Pick an existing remote folder, or type a path (a new folder name will be created).</small>
+    </div>
     <button type="submit">Add sync</button>
   </form>
 </div>
@@ -156,11 +151,13 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="removesync">
     <? if ($syncs): ?>
-      <select name="syncid">
-        <? foreach ($syncs as $s): ?>
-          <option value="<?= htmlspecialchars($s['id']) ?>"><?= htmlspecialchars(shortenPath($s['local'])) ?> &rarr; <?= htmlspecialchars(shortenPath($s['remote'])) ?> (<?= htmlspecialchars($s['id']) ?>)</option>
-        <? endforeach; ?>
-      </select>
+      <div class="megacmd-field">
+        <select name="syncid">
+          <? foreach ($syncs as $s): ?>
+            <option value="<?= htmlspecialchars($s['id']) ?>"><?= htmlspecialchars($s['local']) ?> &rarr; <?= htmlspecialchars($s['remote']) ?> (<?= htmlspecialchars($s['id']) ?>)</option>
+          <? endforeach; ?>
+        </select>
+      </div>
       <button type="submit" class="megacmd-stack-btn">Remove</button>
     <? else: ?>
       <p>No syncs configured.</p>

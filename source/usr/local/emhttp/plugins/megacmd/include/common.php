@@ -44,11 +44,3 @@ function megaListSyncs() {
   }
   return $syncs;
 }
-
-// Shortens a path for display in a dropdown so a long path can't blow out the
-// <select>'s auto-sized width (which forces the whole page to scroll horizontally).
-function shortenPath($path, $maxlen = 36) {
-  if (strlen($path) <= $maxlen) return $path;
-  $keep = intdiv($maxlen - 1, 2);
-  return substr($path, 0, $keep) . "\xE2\x80\xA6" . substr($path, -$keep);
-}

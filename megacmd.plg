@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.11">
+<!ENTITY version "2026.07.12">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,14 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.12
+- Replaced table-based form layouts with label-above-field groups: fixes the Remote path label
+  rendering vertically centered/misaligned against its two stacked controls (a table-cell
+  vertical-align artifact), and adds a real gap between the Local path and Remote path fields.
+- Current syncs / Remove sync now explicitly fill the full available card width instead of an
+  arbitrary cap; long values ellipsize only if the actual rendered width is too small to show them,
+  rather than being pre-truncated server-side regardless of available space.
+
 ###2026.07.11
 - Fixed: the previous select-width fix wasn't enough -- the remote folder dropdown and its text
   field were still side by side and together wider than their container, still forcing the whole
@@ -77,7 +85,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>512b9d19d94e1ae12f506b72e6d05741</MD5>
+    <MD5>ec89684debf11b60ac840f78c5043c76</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
