@@ -1,0 +1,78 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "megacmd">
+<!ENTITY author "seanmerson">
+<!ENTITY version "2026.07.04">
+<!ENTITY md5 "93bc72ab9bf9f8221321dbb4cc94c300">
+<!ENTITY megacmd_version "2.5.2">
+<!ENTITY megacmd_repo_codename "Debian_11">
+<!ENTITY launch "Utilities/MEGAcmd">
+<!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
+<!ENTITY github "merson316/unraid-megacmd">
+<!ENTITY branch "main">
+<!ENTITY rawbase "https://raw.githubusercontent.com/&github;/&branch;">
+<!ENTITY pkgpath "/boot/config/plugins/&name;/&name;-plugin-&version;-x86_64-1.txz">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
+  <CHANGES>
+###2026.07.04
+- Initial GitHub-tracked release.
+- Plugin logic (rc.d script, webGUI page, array event hooks) is hosted in this repo and installed as a
+  small tracked Slackware package.
+- MEGAcmd binaries are NOT vendored here -- they're fetched fresh from MEGA's own official repo
+  (mega.nz/linux/repo/&megacmd_repo_codename;) at install/update time, pinned to version &megacmd_version;.
+- Persistent login/session/sync state stored at /mnt/user/appdata/megacmd/home.
+  </CHANGES>
+
+  <!-- Remove stale plugin-logic package files from a previous version -->
+  <FILE Run="/bin/bash">
+    <INLINE>
+rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/null | grep -v '&version;-x86_64-1.txz')
+</INLINE>
+  </FILE>
+
+  <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
+  <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
+    <URL>&rawbase;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
+    <MD5>&md5;</MD5>
+  </FILE>
+
+  <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
+  <FILE Run="/bin/bash">
+    <INLINE>
+curl -fsSL -o /tmp/megacmd-fetch.sh "&rawbase;/scripts/fetch-megacmd.sh"
+chmod +x /tmp/megacmd-fetch.sh
+/tmp/megacmd-fetch.sh "&megacmd_repo_codename;" "&megacmd_version;"
+rm -f /tmp/megacmd-fetch.sh
+</INLINE>
+  </FILE>
+
+  <!-- Post-install: prepare persistent storage and start the service if the array is already up -->
+  <FILE Run="/bin/bash">
+    <INLINE>
+mkdir -p /mnt/user/appdata/megacmd/home
+chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs 2&gt;/dev/null
+if mountpoint -q /mnt/user 2&gt;/dev/null || [ -d /mnt/user0 ]; then
+  &plugdir;/event/disks_mounted
+fi
+echo ""
+echo "----------------------------------------------------"
+echo " MEGAcmd &megacmd_version; installed."
+echo " Configure login and syncs under Utilities > MEGAcmd."
+echo "----------------------------------------------------"
+echo ""
+</INLINE>
+  </FILE>
+
+  <!-- Remove: stop the service, remove our tracked package and the fetched MEGAcmd binaries,
+       but keep appdata (login/sync state) intact -->
+  <FILE Run="/bin/bash" Method="remove">
+    <INLINE>
+/etc/rc.d/rc.megacmd stop 2&gt;/dev/null
+removepkg &name;-plugin-&version;-x86_64-1
+rm -rf /opt/megacmd
+rm -rf &plugdir;
+rm -rf /boot/config/plugins/&name;
+</INLINE>
+  </FILE>
+</PLUGIN>

@@ -1,0 +1,153 @@
+Menu="Utilities"
+Title="MEGAcmd"
+Icon="fa-cloud-upload-alt"
+---
+<?
+$megaHome = "/mnt/user/appdata/megacmd/home";
+$rc = "/etc/rc.d/rc.megacmd";
+
+function megaExec($args) {
+  global $megaHome;
+  $cmd = "HOME=" . escapeshellarg($megaHome) .
+         " LD_LIBRARY_PATH=/opt/megacmd/lib PATH=/opt/megacmd/bin:\$PATH " .
+         $args . " 2>&1";
+  exec($cmd, $out, $ret);
+  return array("output" => implode("\n", $out), "code" => $ret);
+}
+
+function serviceRunning() {
+  global $rc;
+  exec("$rc status", $out, $ret);
+  return $ret === 0;
+}
+
+$message = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $action = $_POST['action'] ?? '';
+  switch ($action) {
+    case 'start':
+      exec("$rc start 2>&1", $o); sleep(1);
+      $message = implode("\n", $o);
+      break;
+    case 'stop':
+      exec("$rc stop 2>&1", $o);
+      $message = implode("\n", $o);
+      break;
+    case 'restart':
+      exec("$rc restart 2>&1", $o); sleep(1);
+      $message = implode("\n", $o);
+      break;
+    case 'login':
+      $email = trim($_POST['email'] ?? '');
+      $password = (string)($_POST['password'] ?? '');
+      $authcode = trim($_POST['authcode'] ?? '');
+      $args = "mega-login " . escapeshellarg($email) . " " . escapeshellarg($password);
+      if ($authcode !== '') $args .= " --auth-code=" . escapeshellarg($authcode);
+      $r = megaExec($args);
+      $message = $r["output"];
+      break;
+    case 'logout':
+      $r = megaExec("mega-logout");
+      $message = $r["output"];
+      break;
+    case 'addsync':
+      $local = trim($_POST['localpath'] ?? '');
+      $remote = trim($_POST['remotepath'] ?? '');
+      if ($local !== '' && $remote !== '') {
+        $r = megaExec("mega-sync " . escapeshellarg($local) . " " . escapeshellarg($remote));
+        $message = $r["output"];
+      }
+      break;
+    case 'removesync':
+      $id = trim($_POST['syncid'] ?? '');
+      if ($id !== '') {
+        $r = megaExec("mega-sync -d " . escapeshellarg($id));
+        $message = $r["output"];
+      }
+      break;
+  }
+}
+
+$running = serviceRunning();
+$whoami = $running ? megaExec("mega-whoami")["output"] : "";
+$loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
+$syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
+?>
+<style>
+.megacmd-box { margin-bottom: 20px; }
+.megacmd-box h3 { margin-bottom: 8px; }
+.megacmd-msg { background:#222; color:#0f0; padding:8px; white-space:pre-wrap; font-family:monospace; max-height:200px; overflow:auto; }
+.megacmd-status-ok { color: #4a4; font-weight: bold; }
+.megacmd-status-bad { color: #a44; font-weight: bold; }
+</style>
+
+<div class="megacmd-box">
+  <h3>Service</h3>
+  <p>Status:
+    <?= $running ? '<span class="megacmd-status-ok">running</span>' : '<span class="megacmd-status-bad">stopped</span>' ?>
+  </p>
+  <form method="post" style="display:inline">
+    <input type="hidden" name="action" value="start"><button type="submit">Start</button>
+  </form>
+  <form method="post" style="display:inline">
+    <input type="hidden" name="action" value="stop"><button type="submit">Stop</button>
+  </form>
+  <form method="post" style="display:inline">
+    <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
+  </form>
+</div>
+
+<? if ($running): ?>
+<div class="megacmd-box">
+  <h3>Account</h3>
+  <? if ($loggedIn): ?>
+    <p><?= htmlspecialchars($whoami) ?></p>
+    <form method="post">
+      <input type="hidden" name="action" value="logout">
+      <button type="submit">Logout</button>
+    </form>
+  <? else: ?>
+    <form method="post">
+      <input type="hidden" name="action" value="login">
+      <table>
+        <tr><td>Email</td><td><input type="text" name="email" size="40"></td></tr>
+        <tr><td>Password</td><td><input type="password" name="password" size="40"></td></tr>
+        <tr><td>2FA code (if enabled)</td><td><input type="text" name="authcode" size="10"></td></tr>
+      </table>
+      <button type="submit">Login</button>
+    </form>
+  <? endif; ?>
+</div>
+
+<? if ($loggedIn): ?>
+<div class="megacmd-box">
+  <h3>Syncs</h3>
+  <div class="megacmd-msg"><?= htmlspecialchars($syncList) ?></div>
+
+  <h4>Add sync</h4>
+  <form method="post">
+    <input type="hidden" name="action" value="addsync">
+    <table>
+      <tr><td>Local path</td><td><input type="text" name="localpath" size="50" placeholder="/mnt/user/Backups/example"></td></tr>
+      <tr><td>Remote path</td><td><input type="text" name="remotepath" size="50" placeholder="/example"></td></tr>
+    </table>
+    <button type="submit">Add sync</button>
+  </form>
+
+  <h4>Remove sync</h4>
+  <form method="post">
+    <input type="hidden" name="action" value="removesync">
+    <input type="text" name="syncid" placeholder="ID or local path" size="40">
+    <button type="submit">Remove</button>
+  </form>
+</div>
+<? endif; ?>
+<? endif; ?>
+
+<? if ($message !== ""): ?>
+<div class="megacmd-box">
+  <h3>Last command output</h3>
+  <div class="megacmd-msg"><?= htmlspecialchars($message) ?></div>
+</div>
+<? endif; ?>

@@ -1,0 +1,3 @@
+#!/bin/bash
+# Start mega-cmd-server once user shares are mounted (persistent state lives on the array).
+/etc/rc.d/rc.megacmd start >/dev/null 2>&1

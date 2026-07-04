@@ -1,0 +1,3 @@
+#!/bin/bash
+# Stop mega-cmd-server before shares/network services go down and the array unmounts.
+/etc/rc.d/rc.megacmd stop >/dev/null 2>&1
