@@ -42,11 +42,25 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 .megacmd-box h4 { margin: 18px 0 8px; }
 .megacmd-box table { margin-bottom: 10px; }
 .megacmd-box td { padding: 3px 8px 3px 0; vertical-align: middle; }
-.megacmd-box select { max-width: 280px; }
+.megacmd-box select, .megacmd-box input[type=text], .megacmd-box input[type=password] {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+}
+.megacmd-box select { margin-bottom: 6px; }
+.megacmd-box .megacmd-stack-btn { display: block; margin-top: 8px; }
 .megacmd-msg { background:#222; color:#0f0; padding:8px; white-space:pre; font-family:monospace; max-height:200px; max-width:100%; overflow:auto; }
 .megacmd-status-ok { color: #4a4; font-weight: bold; }
 .megacmd-status-bad { color: #a44; font-weight: bold; }
-.megacmd-email { font-size: 1.3em; font-weight: bold; }
+.megacmd-email {
+  font-family: monospace;
+  font-size: 1.1em;
+  background: rgba(128,128,128,0.15);
+  border: 1px solid rgba(128,128,128,0.25);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
 .megacmd-hint { display: block; color: #888; font-size: 0.85em; margin-top: 4px; }
 </style>
 
@@ -74,7 +88,7 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <h3>Account</h3>
   <? if ($loggedIn): ?>
     <? if ($accountEmail !== ""): ?>
-      <p>Account e-mail: <span class="megacmd-email"><?= htmlspecialchars($accountEmail) ?></span></p>
+      <p>Account e-mail: <code class="megacmd-email"><?= htmlspecialchars($accountEmail) ?></code></p>
     <? else: ?>
       <p><?= htmlspecialchars($whoami) ?></p>
     <? endif; ?>
@@ -147,7 +161,7 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
           <option value="<?= htmlspecialchars($s['id']) ?>"><?= htmlspecialchars(shortenPath($s['local'])) ?> &rarr; <?= htmlspecialchars(shortenPath($s['remote'])) ?> (<?= htmlspecialchars($s['id']) ?>)</option>
         <? endforeach; ?>
       </select>
-      <button type="submit">Remove</button>
+      <button type="submit" class="megacmd-stack-btn">Remove</button>
     <? else: ?>
       <p>No syncs configured.</p>
     <? endif; ?>
