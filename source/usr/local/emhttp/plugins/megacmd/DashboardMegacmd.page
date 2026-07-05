@@ -24,7 +24,20 @@ $labelVersion = _('Version');
 $mytiles[$pluginname]['column1'] =
 <<<EOT
 <tbody title="$desc">
-<tr><td>$title</td></tr>
+<tr>
+<td>
+<span class='tile-header'>
+<span class='tile-header-left'>$title</span>
+<span class='tile-header-right'>
+<span class='tile-header-right-controls'>
+<a href="/Utilities/MEGAcmd" title="_(Go to MEGAcmd settings)_">
+<i class="fa fa-fw fa-cog control"></i>
+</a>
+</span>
+</span>
+</span>
+</td>
+</tr>
 <tr><td>
 <span class="w44">$labelStatus</span>
 <span class="w44" style="color:$statusColor">$statusText</span><br>

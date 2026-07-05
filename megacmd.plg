@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05r">
+<!ENTITY version "2026.07.05s">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,12 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05s
+- Dashboard tile now has the same "go to settings" (gear) and "show/hide content" (chevron)
+  controls other tiles have (e.g. GPU Statistics), by adopting Unraid's standard tile-header
+  markup structure -- the chevron/dismiss controls are actually injected automatically by
+  Unraid's own dashboard JS for any tile using this structure; only the gear link is ours.
+
 ###2026.07.05r
 - Added a repo LICENSE (MIT).
 - Added Unraid notifications (bell/email, via dynamix's notify script) for problems: service
@@ -180,7 +186,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>225c7de13eb77a5ac62e41f2ddbed141</MD5>
+    <MD5>95d3f631e8dd49df1c1e83a0cec3851a</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
