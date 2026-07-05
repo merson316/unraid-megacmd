@@ -16,7 +16,7 @@ if ($latest === "" || $installed === "") exit(0);
 if (version_compare($latest, $installed, ">")) {
   notify(
     "MEGAcmd update available",
-    "MEGAcmd $latest is available (installed: $installed). Update it from Utilities > MEGAcmd.",
+    "MEGAcmd $latest is available (installed: $installed). Update it from Settings > MEGAcmd.",
     "normal"
   );
 }

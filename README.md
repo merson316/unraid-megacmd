@@ -1,6 +1,6 @@
 # Unraid MEGAcmd Plugin
 
-Adds a Utilities > MEGAcmd page to Unraid for syncing files between a [MEGA](https://mega.nz) cloud storage account and your Unraid shares, using MEGA's own official command-line client, [MEGAcmd](https://github.com/meganz/MEGAcmd). MEGAcmd's binaries are never vendored here -- they're fetched fresh from MEGA's official repo at install/update time.
+Adds a Settings > MEGAcmd page to Unraid for syncing files between a [MEGA](https://mega.nz) cloud storage account and your Unraid shares, using MEGA's own official command-line client, [MEGAcmd](https://github.com/meganz/MEGAcmd). MEGAcmd's binaries are never vendored here -- they're fetched fresh from MEGA's official repo at install/update time.
 
 ## Features
 

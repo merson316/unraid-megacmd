@@ -2,10 +2,10 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05s">
+<!ENTITY version "2026.07.05t">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
-<!ENTITY launch "Utilities/MEGAcmd">
+<!ENTITY launch "Settings/megacmd">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github "merson316/unraid-megacmd">
 <!ENTITY branch "main">
@@ -14,6 +14,15 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05t
+- Fixed: every link/reference meant to point at this page's actual URL used "/Utilities/MEGAcmd"
+  (guessed from the &launch; entity), but the real URL is "/Settings/megacmd" -- confirmed by
+  the user's own browser. Fixed the &launch; entity itself, the notification "click to open"
+  link, the Dashboard tile's settings-gear link, and every changelog/README/comment mentioning
+  the wrong path. Menu="Utilities" in megacmd.page is unrelated and unchanged -- that correctly
+  controls which Settings-tab section ("User Utilities") the tile is grouped under, separate
+  from the page's actual URL.
+
 ###2026.07.05s
 - Dashboard tile now has the same "go to settings" (gear) and "show/hide content" (chevron)
   controls other tiles have (e.g. GPU Statistics), by adopting Unraid's standard tile-header
@@ -52,7 +61,7 @@
 ###2026.07.05p
 - Added a plugin description: a short intro paragraph on the settings page itself, and a
   README.md so Settings > Plugins shows a real description instead of just the bare plugin name.
-- Fixed: the icon didn't show on the Settings tab's tile grid (Utilities > MEGAcmd tile) --
+- Fixed: the icon didn't show on the Settings tab's tile grid (Settings > MEGAcmd tile) --
   that specific renderer reads the .page file's Icon= header and looks in images/, a third
   icon location distinct from both the sidebar menu's icons/ folder and the Plugin Manager
   list's images/ lookup (which is keyed by the .plg's icon= attribute instead). Standardized
@@ -186,7 +195,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>95d3f631e8dd49df1c1e83a0cec3851a</MD5>
+    <MD5>449f8c7861d2715d7b30c64d96b513ab</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -225,7 +234,7 @@ fi
 echo ""
 echo "----------------------------------------------------"
 echo " MEGAcmd &megacmd_version; installed."
-echo " Configure login and syncs under Utilities > MEGAcmd."
+echo " Configure login and syncs under Settings > MEGAcmd."
 echo " mega-* commands are now on PATH in any terminal."
 echo "----------------------------------------------------"
 echo ""

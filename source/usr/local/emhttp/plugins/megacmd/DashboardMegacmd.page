@@ -30,7 +30,7 @@ $mytiles[$pluginname]['column1'] =
 <span class='tile-header-left'>$title</span>
 <span class='tile-header-right'>
 <span class='tile-header-right-controls'>
-<a href="/Utilities/MEGAcmd" title="_(Go to MEGAcmd settings)_">
+<a href="/Settings/megacmd" title="_(Go to MEGAcmd settings)_">
 <i class="fa fa-fw fa-cog control"></i>
 </a>
 </span>

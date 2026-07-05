@@ -1,6 +1,6 @@
 <?php
 // Handles all MEGAcmd WebGUI actions via AJAX (never via a page-navigating form
-// POST) so revisiting/refreshing the Utilities > MEGAcmd tab can never replay
+// POST) so revisiting/refreshing the Settings > MEGAcmd tab can never replay
 // the last action. CSRF is already enforced globally by webGui/include/local_prepend.php
 // for every POST request, action.php included.
 require_once __DIR__ . "/common.php";

@@ -43,7 +43,7 @@ function notify($subject, $description, $importance = "normal") {
     " -s " . escapeshellarg($subject) .
     " -d " . escapeshellarg($description) .
     " -i " . escapeshellarg($importance) .
-    " -l " . escapeshellarg("/Utilities/MEGAcmd") .
+    " -l " . escapeshellarg("/Settings/megacmd") .
     " >/dev/null 2>&1"
   );
 }
