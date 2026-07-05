@@ -33,6 +33,9 @@ $whoami = megaExec("mega-whoami")["output"];
 $loggedIn = stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 
 if ($loggedIn) {
+  // Cheap and idempotent -- keeps Unraid's docker-safe permissions in place even if a logout/
+  // login cycle (or an upgrade over an already-logged-in install) reset MEGAcmd's own defaults.
+  applyPermissions();
   touch($loggedInMarker);
 } elseif (file_exists($loggedInMarker)) {
   logWatchdog("Unexpectedly logged out.");

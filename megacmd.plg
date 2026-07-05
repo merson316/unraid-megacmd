@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05.30">
+<!ENTITY version "2026.07.05.31">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,11 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05.31
+- Newly created files and folders now default to Unraid's own "docker safe" permissions
+  (666 / 777) instead of MEGAcmd's own more restrictive defaults, so synced content is
+  readable and writable by other shares and containers. Both values are configurable.
+
 ###2026.07.05.30
 - Split the single notification switch into individual toggles for each event type (service
   restarted, unexpected logout, sync error, bandwidth quota, update available).
@@ -144,7 +149,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>8c2ade35b7b54474c971585e500dd322</MD5>
+    <MD5>e9ed2599f99e98279c2c0edb9409821f</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

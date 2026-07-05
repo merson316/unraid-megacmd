@@ -78,6 +78,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 .megacmd-field.megacmd-narrow input { max-width: 140px; }
 .megacmd-field .megacmd-group-label { font-weight: bold; margin-bottom: 6px; }
 .megacmd-field select.megacmd-inline { display: inline-block; width: auto; margin: 0 0 0 4px; }
+.megacmd-field label.megacmd-inline-group { display: inline-block; margin-right: 24px; }
+.megacmd-field input.megacmd-narrow-input { display: inline-block; width: 70px; }
 .megacmd-stack-btn { display: block; margin-top: 8px; }
 .megacmd-msg { background:#222; color:#0f0; padding:8px; width:100%; white-space:pre; font-family:monospace; max-height:200px; box-sizing:border-box; overflow:auto; }
 .megacmd-status-ok { color: #4a4; font-weight: bold; }
@@ -408,6 +410,21 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         </select>
       </label>
     </div>
+    <div class="megacmd-field">
+      <label class="megacmd-group-label">Permissions for newly created files/folders</label>
+      <label class="megacmd-inline-group">Files
+        <input type="text" name="perm_files" value="<?= htmlspecialchars($cfg['PERM_FILES']) ?>" class="megacmd-narrow-input">
+      </label>
+      <label class="megacmd-inline-group">Folders
+        <input type="text" name="perm_folders" value="<?= htmlspecialchars($cfg['PERM_FOLDERS']) ?>" class="megacmd-narrow-input">
+      </label>
+      <small class="megacmd-hint">
+        Defaults (666 / 777) match Unraid's own "docker safe" permissions, so files MEGAcmd
+        downloads or syncs are readable/writable by the "nobody" user Docker containers and
+        other shares typically run as. Changing these is at your own risk -- MEGAcmd itself
+        enforces a floor of 600 for files and 700 for folders.
+      </small>
+    </div>
     <div class="megacmd-field megacmd-narrow">
       <label>Upload speed limit</label>
       <input type="text" name="speedlimit_up" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_UP']) ?>" placeholder="unlimited">
@@ -424,9 +441,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     Optional behavior for this plugin. Notifications use Unraid's own notification system
     (bell icon / optional email) and can be turned on or off individually for each type of
     event. The watchdog automatically restarts the background service if it ever crashes,
-    checking on the interval you choose here. Speed limits cap how much of your internet
-    connection MEGAcmd is allowed to use, so a big sync or backup doesn't slow down everything
-    else on your network.
+    checking on the interval you choose here. Permissions control what MEGAcmd sets on newly
+    created files and folders. Speed limits cap how much of your internet connection MEGAcmd
+    is allowed to use, so a big sync or backup doesn't slow down everything else on your
+    network.
   </blockquote>
 </div>
 

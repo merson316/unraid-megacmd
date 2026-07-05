@@ -32,8 +32,10 @@ switch ($action) {
     if ($authcode !== '') $args .= " --auth-code=" . escapeshellarg($authcode);
     $r = megaExec($args);
     $message = $r["output"];
-    // MEGAcmd only remembers speed limits for the life of a login session, so re-apply ours.
+    // MEGAcmd only remembers speed limits and file/folder permissions for the life of a login
+    // session, so both need to be re-applied after every fresh login.
     applySpeedlimit();
+    applyPermissions();
     break;
   case 'logout':
     $r = megaExec("mega-logout");
@@ -74,6 +76,12 @@ switch ($action) {
   case 'savesettings':
     $watchdogInterval = $_POST['watchdog_interval'] ?? '5';
     if (!in_array($watchdogInterval, ['1', '5', '10', '15', '30', '60'], true)) $watchdogInterval = '5';
+    // MEGAcmd itself refuses anything below 600/700 and won't restrict the owner bits further,
+    // so validate here too rather than silently letting an invalid value fall through to it.
+    $permFiles = trim($_POST['perm_files'] ?? '666');
+    if (!preg_match('/^[0-7]{3}$/', $permFiles) || (int)$permFiles < 600) $permFiles = '666';
+    $permFolders = trim($_POST['perm_folders'] ?? '777');
+    if (!preg_match('/^[0-7]{3}$/', $permFolders) || (int)$permFolders < 700) $permFolders = '777';
     $newCfg = [
       "NOTIFY_RESTART" => ($_POST['notify_restart'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_LOGOUT" => ($_POST['notify_logout'] ?? '') === 'yes' ? 'yes' : 'no',
@@ -82,11 +90,14 @@ switch ($action) {
       "NOTIFY_UPDATE" => ($_POST['notify_update'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG" => ($_POST['watchdog'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG_INTERVAL" => $watchdogInterval,
+      "PERM_FILES" => $permFiles,
+      "PERM_FOLDERS" => $permFolders,
       "SPEEDLIMIT_UP" => trim($_POST['speedlimit_up'] ?? ''),
       "SPEEDLIMIT_DOWN" => trim($_POST['speedlimit_down'] ?? ''),
     ];
     saveConfig($newCfg);
     applySpeedlimit();
+    applyPermissions();
     regenerateCron();
     $message = "Settings saved.";
     break;

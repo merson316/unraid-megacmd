@@ -41,6 +41,8 @@ $cfgDefaults = [
   "NOTIFY_UPDATE" => "yes",
   "WATCHDOG" => "yes",
   "WATCHDOG_INTERVAL" => "5",
+  "PERM_FILES" => "666",
+  "PERM_FOLDERS" => "777",
   "SPEEDLIMIT_UP" => "",
   "SPEEDLIMIT_DOWN" => "",
 ];
@@ -210,6 +212,22 @@ function applySpeedlimit() {
   $down = trim($cfg["SPEEDLIMIT_DOWN"] ?? "");
   if ($up !== "") megaExec("mega-speedlimit -u " . escapeshellarg($up));
   if ($down !== "") megaExec("mega-speedlimit -d " . escapeshellarg($down));
+}
+
+// MEGAcmd's own defaults for newly created files/folders (600/700) are far more restrictive
+// than Unraid's "New Permissions" convention (777 for folders, 666 for files) that every share
+// and Docker container on Unraid is expected to follow, so synced-down content would otherwise
+// be unreadable/unwritable to other users and containers. Like speed limits, MEGAcmd only
+// remembers this for the life of the current login session, so it must be re-applied after
+// every fresh login -- it survives a plain service restart, but is silently reset on logout.
+function applyPermissions() {
+  $cfg = getConfig();
+  $files = $cfg["PERM_FILES"] ?? "666";
+  $folders = $cfg["PERM_FOLDERS"] ?? "777";
+  if (!preg_match('/^[0-7]{3}$/', $files)) $files = "666";
+  if (!preg_match('/^[0-7]{3}$/', $folders)) $folders = "777";
+  megaExec("mega-permissions --files -s " . escapeshellarg($files));
+  megaExec("mega-permissions --folders -s " . escapeshellarg($folders));
 }
 
 function serviceRunning() {
