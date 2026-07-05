@@ -34,8 +34,13 @@ $plgPath = "/boot/config/plugins/megacmd.plg";
 // (/boot/config/plugins/<name>/<name>.cfg, simple KEY="value" lines).
 $cfgPath = "/boot/config/plugins/megacmd/megacmd.cfg";
 $cfgDefaults = [
-  "NOTIFY" => "yes",
+  "NOTIFY_RESTART" => "yes",
+  "NOTIFY_LOGOUT" => "yes",
+  "NOTIFY_SYNCERROR" => "yes",
+  "NOTIFY_QUOTA" => "yes",
+  "NOTIFY_UPDATE" => "yes",
   "WATCHDOG" => "yes",
+  "WATCHDOG_INTERVAL" => "5",
   "SPEEDLIMIT_UP" => "",
   "SPEEDLIMIT_DOWN" => "",
 ];
@@ -57,11 +62,29 @@ function saveConfig($cfg) {
   return file_put_contents($cfgPath, implode("\n", $lines) . "\n") !== false;
 }
 
-// Sends an Unraid notification (bell icon / optional email) via the standard dynamix script.
-// $importance is one of "normal", "warning", "alert".
-function notify($subject, $description, $importance = "normal") {
+// Rewrites the plugin's cron fragment (watchdog interval + daily update check) from the current
+// settings and asks Unraid to re-merge it into the live crontab immediately -- so changing the
+// watchdog interval on the settings page takes effect right away instead of waiting for a reboot
+// or plugin reinstall.
+function regenerateCron() {
   $cfg = getConfig();
-  if (($cfg["NOTIFY"] ?? "yes") !== "yes") return;
+  $interval = (int)($cfg["WATCHDOG_INTERVAL"] ?? 5);
+  if (!in_array($interval, [1, 5, 10, 15, 30, 60], true)) $interval = 5;
+  $dir = "/boot/config/plugins/megacmd";
+  if (!is_dir($dir)) mkdir($dir, 0755, true);
+  $cron = "*/$interval * * * * /usr/local/emhttp/plugins/megacmd/scripts/watchdog.php >/dev/null 2>&1\n"
+        . "17 3 * * * /usr/local/emhttp/plugins/megacmd/scripts/check-update-notify.php >/dev/null 2>&1\n";
+  file_put_contents("$dir/megacmd.cron", $cron);
+  exec("/usr/local/sbin/update_cron >/dev/null 2>&1");
+}
+
+// Sends an Unraid notification (bell icon / optional email) via the standard dynamix script,
+// gated on its own specific settings-page toggle ($cfgKey, e.g. "NOTIFY_QUOTA") rather than one
+// shared switch, so each notification type can be turned on or off independently.
+// $importance is one of "normal", "warning", "alert".
+function notify($subject, $description, $cfgKey, $importance = "normal") {
+  $cfg = getConfig();
+  if (($cfg[$cfgKey] ?? "yes") !== "yes") return;
   exec(
     "/usr/local/emhttp/plugins/dynamix/scripts/notify" .
     " -e " . escapeshellarg("MEGAcmd") .

@@ -72,14 +72,22 @@ switch ($action) {
     }
     break;
   case 'savesettings':
+    $watchdogInterval = $_POST['watchdog_interval'] ?? '5';
+    if (!in_array($watchdogInterval, ['1', '5', '10', '15', '30', '60'], true)) $watchdogInterval = '5';
     $newCfg = [
-      "NOTIFY" => ($_POST['notify'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_RESTART" => ($_POST['notify_restart'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_LOGOUT" => ($_POST['notify_logout'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_SYNCERROR" => ($_POST['notify_syncerror'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_QUOTA" => ($_POST['notify_quota'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_UPDATE" => ($_POST['notify_update'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG" => ($_POST['watchdog'] ?? '') === 'yes' ? 'yes' : 'no',
+      "WATCHDOG_INTERVAL" => $watchdogInterval,
       "SPEEDLIMIT_UP" => trim($_POST['speedlimit_up'] ?? ''),
       "SPEEDLIMIT_DOWN" => trim($_POST['speedlimit_down'] ?? ''),
     ];
     saveConfig($newCfg);
     applySpeedlimit();
+    regenerateCron();
     $message = "Settings saved.";
     break;
   case 'checkmegacmdupdate':

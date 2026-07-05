@@ -76,6 +76,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 }
 .megacmd-field select { margin-bottom: 6px; }
 .megacmd-field.megacmd-narrow input { max-width: 140px; }
+.megacmd-field .megacmd-group-label { font-weight: bold; margin-bottom: 6px; }
+.megacmd-field select.megacmd-inline { display: inline-block; width: auto; margin: 0 0 0 4px; }
 .megacmd-stack-btn { display: block; margin-top: 8px; }
 .megacmd-msg { background:#222; color:#0f0; padding:8px; width:100%; white-space:pre; font-family:monospace; max-height:200px; box-sizing:border-box; overflow:auto; }
 .megacmd-status-ok { color: #4a4; font-weight: bold; }
@@ -384,13 +386,27 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="savesettings">
     <div class="megacmd-field">
-      <label><input type="checkbox" name="notify" value="yes" <?= $cfg['NOTIFY'] === 'yes' ? 'checked' : '' ?>>
-        Send Unraid notifications for problems (service crashed, logged out unexpectedly, sync
-        errors, MEGA bandwidth quota reached, MEGAcmd update available)</label>
+      <label class="megacmd-group-label">Send an Unraid notification when:</label>
+      <label><input type="checkbox" name="notify_restart" value="yes" <?= $cfg['NOTIFY_RESTART'] === 'yes' ? 'checked' : '' ?>>
+        The service crashed and was restarted automatically</label>
+      <label><input type="checkbox" name="notify_logout" value="yes" <?= $cfg['NOTIFY_LOGOUT'] === 'yes' ? 'checked' : '' ?>>
+        MEGAcmd is unexpectedly logged out</label>
+      <label><input type="checkbox" name="notify_syncerror" value="yes" <?= $cfg['NOTIFY_SYNCERROR'] === 'yes' ? 'checked' : '' ?>>
+        A sync reports an error</label>
+      <label><input type="checkbox" name="notify_quota" value="yes" <?= $cfg['NOTIFY_QUOTA'] === 'yes' ? 'checked' : '' ?>>
+        MEGA's bandwidth quota is reached</label>
+      <label><input type="checkbox" name="notify_update" value="yes" <?= $cfg['NOTIFY_UPDATE'] === 'yes' ? 'checked' : '' ?>>
+        A newer MEGAcmd version is available</label>
     </div>
     <div class="megacmd-field">
       <label><input type="checkbox" name="watchdog" value="yes" <?= $cfg['WATCHDOG'] === 'yes' ? 'checked' : '' ?>>
-        Automatically restart the service if it crashes (checked every 5 minutes)</label>
+        Automatically restart the service if it crashes, checking every
+        <select name="watchdog_interval" class="megacmd-inline">
+          <? foreach ([1, 5, 10, 15, 30, 60] as $m): ?>
+          <option value="<?=$m?>" <?= (int)$cfg['WATCHDOG_INTERVAL'] === $m ? 'selected' : '' ?>><?=$m?> minute<?=$m === 1 ? '' : 's'?></option>
+          <? endforeach ?>
+        </select>
+      </label>
     </div>
     <div class="megacmd-field megacmd-narrow">
       <label>Upload speed limit</label>
@@ -405,12 +421,12 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <button type="submit">Save settings</button>
   </form>
   <blockquote class="inline_help">
-    Optional behavior for this plugin. Notifications use Unraid's own notification system to
-    warn you about problems: the service crashing, an unexpected logout, a sync error, MEGA's
-    bandwidth quota being reached, or a MEGAcmd update becoming available. The watchdog
-    automatically restarts the background service if it ever crashes. Speed limits cap how much
-    of your internet connection MEGAcmd is allowed to use, so a big sync or backup doesn't slow
-    down everything else on your network.
+    Optional behavior for this plugin. Notifications use Unraid's own notification system
+    (bell icon / optional email) and can be turned on or off individually for each type of
+    event. The watchdog automatically restarts the background service if it ever crashes,
+    checking on the interval you choose here. Speed limits cap how much of your internet
+    connection MEGAcmd is allowed to use, so a big sync or backup doesn't slow down everything
+    else on your network.
   </blockquote>
 </div>
 

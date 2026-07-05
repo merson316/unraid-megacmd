@@ -22,11 +22,11 @@ if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !serviceRunning()) {
   notify(
     "MEGAcmd service restarted",
     "mega-cmd-server was not running and has been restarted automatically.",
+    "NOTIFY_RESTART",
     "warning"
   );
 }
 
-if (($cfg["NOTIFY"] ?? "yes") !== "yes") exit(0);
 if (!serviceRunning()) exit(0);
 
 $whoami = megaExec("mega-whoami")["output"];
@@ -39,6 +39,7 @@ if ($loggedIn) {
   notify(
     "MEGAcmd logged out",
     "MEGAcmd was logged in but is no longer -- syncs are paused until you log back in.",
+    "NOTIFY_LOGOUT",
     "alert"
   );
   unlink($loggedInMarker);
@@ -60,6 +61,7 @@ foreach ($syncs as $s) {
       notify(
         "MEGAcmd sync error",
         "Sync {$s['local']} -> {$s['remote']} reports: {$s['error']}",
+        "NOTIFY_SYNCERROR",
         "warning"
       );
     }
@@ -78,11 +80,12 @@ if (file_exists($logFile)) {
   $newContent = stream_get_contents($fh);
   fclose($fh);
   file_put_contents($logPosFile, (string)$size);
-  if (stripos($newContent, "Reached bandwidth quota") !== false) {
+  if (stripos($newContent, "bandwidth quota") !== false) {
     logWatchdog("MEGA bandwidth quota reached.");
     notify(
       "MEGA bandwidth quota reached",
       "A transfer could not proceed because MEGA's free bandwidth allowance for this IP has been reached. It will resume automatically once quota is available, or consider a paid plan for more bandwidth.",
+      "NOTIFY_QUOTA",
       "warning"
     );
   }
