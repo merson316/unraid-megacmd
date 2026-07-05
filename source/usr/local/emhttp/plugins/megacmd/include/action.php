@@ -32,6 +32,8 @@ switch ($action) {
     if ($authcode !== '') $args .= " --auth-code=" . escapeshellarg($authcode);
     $r = megaExec($args);
     $message = $r["output"];
+    // MEGAcmd only remembers speed limits for the life of a login session, so re-apply ours.
+    applySpeedlimit();
     break;
   case 'logout':
     $r = megaExec("mega-logout");
@@ -40,8 +42,18 @@ switch ($action) {
   case 'addsync':
     $local = trim($_POST['localpath'] ?? '');
     $remote = trim($_POST['remotepath'] ?? '');
+    $synctype = $_POST['synctype'] ?? 'sync';
     if ($local !== '' && $remote !== '') {
-      $r = megaExec("mega-sync " . escapeshellarg($local) . " " . escapeshellarg($remote));
+      if ($synctype === 'backup') {
+        $period = trim($_POST['backupperiod'] ?? '') ?: '1d';
+        $numBackups = max(1, (int)($_POST['numbackups'] ?? 7));
+        $r = megaExec(
+          "mega-backup " . escapeshellarg($local) . " " . escapeshellarg($remote) .
+          " --period=" . escapeshellarg($period) . " --num-backups=" . $numBackups
+        );
+      } else {
+        $r = megaExec("mega-sync " . escapeshellarg($local) . " " . escapeshellarg($remote));
+      }
       $message = $r["output"];
     }
     break;
@@ -51,6 +63,24 @@ switch ($action) {
       $r = megaExec("mega-sync -d " . escapeshellarg($id));
       $message = $r["output"];
     }
+    break;
+  case 'removebackup':
+    $tag = trim($_POST['backuptag'] ?? '');
+    if ($tag !== '') {
+      $r = megaExec("mega-backup -d " . escapeshellarg($tag));
+      $message = $r["output"];
+    }
+    break;
+  case 'savesettings':
+    $newCfg = [
+      "NOTIFY" => ($_POST['notify'] ?? '') === 'yes' ? 'yes' : 'no',
+      "WATCHDOG" => ($_POST['watchdog'] ?? '') === 'yes' ? 'yes' : 'no',
+      "SPEEDLIMIT_UP" => trim($_POST['speedlimit_up'] ?? ''),
+      "SPEEDLIMIT_DOWN" => trim($_POST['speedlimit_down'] ?? ''),
+    ];
+    saveConfig($newCfg);
+    applySpeedlimit();
+    $message = "Settings saved.";
     break;
   case 'checkmegacmdupdate':
     $codename = getPlgEntity('megacmd_repo_codename');

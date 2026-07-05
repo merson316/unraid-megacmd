@@ -11,6 +11,7 @@ unset($_SESSION['megacmd_message']);
 
 $installedMegacmdVersion = getPlgEntity('megacmd_version');
 $latestMegacmdVersion = $_SESSION['megacmd_latest_checked'] ?? null;
+$cfg = getConfig();
 
 $running = serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
@@ -21,6 +22,7 @@ $syncHistory = $running && $loggedIn
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
+$backupList = $running && $loggedIn ? megaExec("mega-backup -l")["output"] : "";
 
 $accountEmail = "";
 if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
@@ -117,6 +119,34 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   </form>
 </div>
 
+<div class="megacmd-box">
+  <h3>Settings</h3>
+  <form class="megacmd-ajax-form" method="post">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+    <input type="hidden" name="action" value="savesettings">
+    <div class="megacmd-field">
+      <label><input type="checkbox" name="notify" value="yes" <?= $cfg['NOTIFY'] === 'yes' ? 'checked' : '' ?>>
+        Send Unraid notifications for problems (service crashed, logged out unexpectedly, sync
+        errors, MEGA bandwidth quota reached, MEGAcmd update available)</label>
+    </div>
+    <div class="megacmd-field">
+      <label><input type="checkbox" name="watchdog" value="yes" <?= $cfg['WATCHDOG'] === 'yes' ? 'checked' : '' ?>>
+        Automatically restart the service if it crashes (checked every 5 minutes)</label>
+    </div>
+    <div class="megacmd-field megacmd-narrow">
+      <label>Upload speed limit</label>
+      <input type="text" name="speedlimit_up" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_UP']) ?>" placeholder="unlimited">
+      <small class="megacmd-hint">e.g. "2M" for 2 MB/s. Leave blank for unlimited.</small>
+    </div>
+    <div class="megacmd-field megacmd-narrow">
+      <label>Download speed limit</label>
+      <input type="text" name="speedlimit_down" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_DOWN']) ?>" placeholder="unlimited">
+      <small class="megacmd-hint">e.g. "10M" for 10 MB/s. Leave blank for unlimited.</small>
+    </div>
+    <button type="submit">Save settings</button>
+  </form>
+</div>
+
 <? if ($running): ?>
 <div class="megacmd-box">
   <h3>Account</h3>
@@ -164,6 +194,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="addsync">
     <div class="megacmd-field">
+      <label><input type="radio" name="synctype" value="sync" checked onchange="document.getElementById('mc_backup_fields').style.display='none';"> Two-way sync</label>
+      <label><input type="radio" name="synctype" value="backup" onchange="document.getElementById('mc_backup_fields').style.display='block';"> One-way backup (MEGA's own backup feature, currently in BETA)</label>
+    </div>
+    <div class="megacmd-field">
       <label>Local path</label>
       <input type="text" id="mc_localpath" name="localpath" autocomplete="off" spellcheck="false"
              data-pickfolders="true" data-pickfilter="HIDE_FILES_FILTER"
@@ -180,6 +214,17 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       </select>
       <input type="text" id="mc_remotepath" name="remotepath" placeholder="/example">
       <small class="megacmd-hint">Pick an existing remote folder, or type a path (a new folder name will be created).</small>
+    </div>
+    <div id="mc_backup_fields" style="display:none">
+      <div class="megacmd-field megacmd-narrow">
+        <label>Backup period</label>
+        <input type="text" name="backupperiod" value="1d">
+        <small class="megacmd-hint">e.g. "1d" for daily, "12h" for every 12 hours, or a cron-like expression.</small>
+      </div>
+      <div class="megacmd-field megacmd-narrow">
+        <label>Backups to keep</label>
+        <input type="text" name="numbackups" value="7">
+      </div>
     </div>
     <button type="submit">Add sync</button>
   </form>
@@ -202,6 +247,28 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <? else: ?>
       <p>No syncs configured.</p>
     <? endif; ?>
+  </form>
+</div>
+
+<div class="megacmd-box">
+  <h3>Current backups</h3>
+  <? if (trim($backupList) !== "" && stripos($backupList, "No backup configured") === false): ?>
+    <div class="megacmd-msg"><?= htmlspecialchars($backupList) ?></div>
+  <? else: ?>
+    <p>No backups configured.</p>
+  <? endif; ?>
+</div>
+
+<div class="megacmd-box">
+  <h3>Remove backup</h3>
+  <form class="megacmd-ajax-form" method="post">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+    <input type="hidden" name="action" value="removebackup">
+    <div class="megacmd-field megacmd-narrow">
+      <label>Backup tag or local path</label>
+      <input type="text" name="backuptag" placeholder="e.g. /mnt/user/share/folder">
+    </div>
+    <button type="submit">Remove</button>
   </form>
 </div>
 <? endif; ?>

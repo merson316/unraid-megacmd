@@ -5,6 +5,48 @@ $rc = "/etc/rc.d/rc.megacmd";
 // re-installs from on every boot (rc.local iterates /boot/config/plugins/*.plg), so rewriting
 // the megacmd_version entity here is what makes a runtime MEGAcmd update survive a reboot.
 $plgPath = "/boot/config/plugins/megacmd.plg";
+// User-configurable settings, following Unraid's standard plugin-config convention
+// (/boot/config/plugins/<name>/<name>.cfg, simple KEY="value" lines).
+$cfgPath = "/boot/config/plugins/megacmd/megacmd.cfg";
+$cfgDefaults = [
+  "NOTIFY" => "yes",
+  "WATCHDOG" => "yes",
+  "SPEEDLIMIT_UP" => "",
+  "SPEEDLIMIT_DOWN" => "",
+];
+
+function getConfig() {
+  global $cfgPath, $cfgDefaults;
+  $cfg = file_exists($cfgPath) ? (@parse_ini_file($cfgPath) ?: []) : [];
+  return array_merge($cfgDefaults, $cfg);
+}
+
+function saveConfig($cfg) {
+  global $cfgPath, $cfgDefaults;
+  $cfg = array_merge($cfgDefaults, $cfg);
+  $lines = [];
+  foreach ($cfg as $key => $value) {
+    $lines[] = $key . '="' . str_replace('"', '', $value) . '"';
+  }
+  if (!is_dir(dirname($cfgPath))) mkdir(dirname($cfgPath), 0755, true);
+  return file_put_contents($cfgPath, implode("\n", $lines) . "\n") !== false;
+}
+
+// Sends an Unraid notification (bell icon / optional email) via the standard dynamix script.
+// $importance is one of "normal", "warning", "alert".
+function notify($subject, $description, $importance = "normal") {
+  $cfg = getConfig();
+  if (($cfg["NOTIFY"] ?? "yes") !== "yes") return;
+  exec(
+    "/usr/local/emhttp/plugins/dynamix/scripts/notify" .
+    " -e " . escapeshellarg("MEGAcmd") .
+    " -s " . escapeshellarg($subject) .
+    " -d " . escapeshellarg($description) .
+    " -i " . escapeshellarg($importance) .
+    " -l " . escapeshellarg("/Utilities/MEGAcmd") .
+    " >/dev/null 2>&1"
+  );
+}
 
 function getPlgEntity($entityName) {
   global $plgPath;
@@ -54,6 +96,16 @@ function megaExec($args) {
   return array("output" => implode("\n", $out), "code" => $ret);
 }
 
+// Re-applies the configured upload/download speed limits -- MEGAcmd only remembers these for
+// the life of the current login session, so this needs to run again after every fresh login.
+function applySpeedlimit() {
+  $cfg = getConfig();
+  $up = trim($cfg["SPEEDLIMIT_UP"] ?? "");
+  $down = trim($cfg["SPEEDLIMIT_DOWN"] ?? "");
+  if ($up !== "") megaExec("mega-speedlimit -u " . escapeshellarg($up));
+  if ($down !== "") megaExec("mega-speedlimit -d " . escapeshellarg($down));
+}
+
 function serviceRunning() {
   global $rc;
   exec("$rc status", $out, $ret);
@@ -84,6 +136,22 @@ function megaListSyncs() {
     $cols = explode('|', $line);
     if (count($cols) < 3) continue;
     $syncs[] = ["id" => $cols[0], "local" => $cols[1], "remote" => $cols[2]];
+  }
+  return $syncs;
+}
+
+// Same as megaListSyncs() but also includes the ERROR column (columns: ID LOCALPATH REMOTEPATH
+// RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors.
+function megaListSyncsWithError() {
+  $r = megaExec('mega-sync --col-separator="|"');
+  $lines = explode("\n", trim($r["output"]));
+  array_shift($lines); // header row
+  $syncs = [];
+  foreach ($lines as $line) {
+    if (trim($line) === "") continue;
+    $cols = explode('|', $line);
+    if (count($cols) < 6) continue;
+    $syncs[] = ["id" => $cols[0], "local" => $cols[1], "remote" => $cols[2], "error" => trim($cols[5])];
   }
   return $syncs;
 }

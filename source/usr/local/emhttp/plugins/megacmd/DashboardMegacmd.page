@@ -1,0 +1,38 @@
+Menu="Dashboard:0"
+Cond="version_compare(parse_ini_file('/etc/unraid-version')['version'],'6.11.9','>')"
+---
+<?PHP
+require_once "/usr/local/emhttp/plugins/megacmd/include/common.php";
+
+$pluginname = "megacmd";
+
+$running = serviceRunning();
+$whoami = $running ? megaExec("mega-whoami")["output"] : "";
+$loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
+$syncCount = $loggedIn ? count(megaListSyncs()) : 0;
+$version = getPlgEntity('megacmd_version');
+
+$statusText = !$running ? _('Stopped') : ($loggedIn ? _('Logged in') : _('Not logged in'));
+$statusColor = !$running ? '#a44' : ($loggedIn ? '#4a4' : '#a84');
+
+$title = _('MEGAcmd');
+$desc = _('MEGAcmd cloud sync status');
+$labelStatus = _('Status');
+$labelSyncs = _('Active syncs');
+$labelVersion = _('Version');
+
+$mytiles[$pluginname]['column1'] =
+<<<EOT
+<tbody title="$desc">
+<tr><td>$title</td></tr>
+<tr><td>
+<span class="w44">$labelStatus</span>
+<span class="w44" style="color:$statusColor">$statusText</span><br>
+<span class="w44">$labelSyncs</span>
+<span class="w44">$syncCount</span><br>
+<span class="w44">$labelVersion</span>
+<span class="w44">$version</span>
+</td></tr>
+</tbody>
+EOT;
+?>

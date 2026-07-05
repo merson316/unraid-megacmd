@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05q">
+<!ENTITY version "2026.07.05r">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -14,6 +14,30 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05r
+- Added a repo LICENSE (MIT).
+- Added Unraid notifications (bell/email, via dynamix's notify script) for problems: service
+  crashed, unexpectedly logged out, sync errors, MEGA bandwidth quota reached, and available
+  MEGAcmd updates. Configurable (on by default) from a new Settings card.
+- Added a watchdog: checked every 5 minutes via cron, restarts the service automatically if it's
+  crashed. Configurable (on by default) from the same Settings card.
+- Added configurable upload/download speed limits (mega-speedlimit), re-applied on every login
+  since MEGAcmd only remembers them for the life of a session.
+- Added log rotation (/etc/logrotate.d/megacmd) for server.log/megacmdserver.log/watchdog.log --
+  these live under /mnt/user/appdata, outside Unraid's own /var/log rotation scope, and would
+  otherwise grow unbounded.
+- Added one-way backups as an alternative to two-way sync in the Add form, using MEGA's own
+  mega-backup (currently in BETA upstream), with configurable period and retention count. New
+  "Current backups" and "Remove backup" cards to match.
+- Added a Dashboard tile showing login status, active sync count, and installed MEGAcmd version
+  at a glance.
+- Investigated Fix Common Problems integration: not feasible -- it's a closed, first-party-only
+  checklist with no third-party registration API, unlike the notify/cron/dashboard mechanisms
+  above which are all genuinely open, documented Unraid conventions.
+- No code needed for Backup/Restore Appdata compatibility -- our persistent state already lives
+  under /mnt/user/appdata/megacmd and is automatically included like any other appdata folder;
+  documented this in the README instead.
+
 ###2026.07.05q
 - Reformatted README.md to match the other installed plugins' description style on the
   Plugins management list: a bold plugin name on its own line, then the description below,
@@ -156,7 +180,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>23fbe811bfedb90796ef0fdceafdc784</MD5>
+    <MD5>225c7de13eb77a5ac62e41f2ddbed141</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -175,10 +199,20 @@ rm -f /tmp/megacmd-fetch.sh
   <FILE Run="/bin/bash">
     <INLINE>
 mkdir -p /mnt/user/appdata/megacmd/home
-chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs &plugdir;/megacmd-wrapper.sh 2&gt;/dev/null
+chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs &plugdir;/megacmd-wrapper.sh &plugdir;/scripts/watchdog.php &plugdir;/scripts/check-update-notify.php 2&gt;/dev/null
 for f in /opt/megacmd/bin/mega-*; do
   ln -sf &plugdir;/megacmd-wrapper.sh "/usr/local/bin/$(basename "$f")"
 done
+
+# Watchdog (auto-restart + failure notifications, every 5 min) and a daily update check --
+# /boot/config/plugins/&name;/*.cron is combined into the real crontab by update_cron.
+mkdir -p /boot/config/plugins/&name;
+cat &gt; /boot/config/plugins/&name;/megacmd.cron &lt;&lt;'CRONEOF'
+*/5 * * * * &plugdir;/scripts/watchdog.php &gt;/dev/null 2&gt;&amp;1
+17 3 * * * &plugdir;/scripts/check-update-notify.php &gt;/dev/null 2&gt;&amp;1
+CRONEOF
+/usr/local/sbin/update_cron
+
 if mountpoint -q /mnt/user 2&gt;/dev/null || [ -d /mnt/user0 ]; then
   &plugdir;/event/disks_mounted
 fi
@@ -204,6 +238,7 @@ removepkg &name;-plugin-&version;-x86_64-1
 rm -rf /opt/megacmd
 rm -rf &plugdir;
 rm -rf /boot/config/plugins/&name;
+/usr/local/sbin/update_cron
 </INLINE>
   </FILE>
 </PLUGIN>
