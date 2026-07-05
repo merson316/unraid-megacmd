@@ -5,6 +5,8 @@
 // for every POST request, action.php included.
 require_once __DIR__ . "/common.php";
 
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
 $rc = "/etc/rc.d/rc.megacmd";
 $message = "";
 $action = $_POST['action'] ?? '';
@@ -50,9 +52,54 @@ switch ($action) {
       $message = $r["output"];
     }
     break;
+  case 'checkmegacmdupdate':
+    $codename = getPlgEntity('megacmd_repo_codename');
+    $installed = getPlgEntity('megacmd_version');
+    $latest = getLatestMegacmdVersion($codename);
+    if ($latest === "") {
+      $_SESSION['megacmd_latest_checked'] = null;
+      $message = "Could not check for updates (network issue, or MEGA's repo listing format changed).";
+    } else {
+      $_SESSION['megacmd_latest_checked'] = $latest;
+      $message = version_compare($latest, $installed, '>')
+        ? "Update available: MEGAcmd $latest (installed: $installed)."
+        : "MEGAcmd is up to date ($installed).";
+    }
+    break;
+  case 'updatemegacmd':
+    $codename = getPlgEntity('megacmd_repo_codename');
+    $github = getPlgEntity('github');
+    $branch = getPlgEntity('branch');
+    $latest = getLatestMegacmdVersion($codename);
+    if ($latest === "" || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/', $latest)) {
+      $message = "Could not determine the latest MEGAcmd version -- update aborted.";
+      break;
+    }
+    $rawbase = "https://raw.githubusercontent.com/$github/$branch";
+    $tmp = "/tmp/megacmd-fetch-" . uniqid() . ".sh";
+    exec("curl -fsSL -o " . escapeshellarg($tmp) . " " . escapeshellarg("$rawbase/scripts/fetch-megacmd.sh") . " 2>&1", $o1, $r1);
+    if ($r1 !== 0) {
+      $message = "Failed to fetch the update script:\n" . implode("\n", $o1);
+      break;
+    }
+    exec("chmod +x " . escapeshellarg($tmp));
+    exec("$rc stop 2>&1");
+    exec(escapeshellarg($tmp) . " " . escapeshellarg($codename) . " " . escapeshellarg($latest) . " 2>&1", $o3, $r3);
+    @unlink($tmp);
+    if ($r3 !== 0) {
+      exec("$rc start 2>&1");
+      $message = "Update to $latest failed:\n" . implode("\n", $o3);
+      break;
+    }
+    $message = setPlgEntity('megacmd_version', $latest)
+      ? "Updated MEGAcmd to $latest."
+      : "Installed MEGAcmd $latest but could not persist the version pin in megacmd.plg -- it will revert to the old version on next reboot.";
+    $message .= "\n" . implode("\n", $o3);
+    unset($_SESSION['megacmd_latest_checked']);
+    exec("$rc start 2>&1"); sleep(1);
+    break;
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $_SESSION['megacmd_message'] = $message;
 header('Content-Type: text/plain');
 echo $message;

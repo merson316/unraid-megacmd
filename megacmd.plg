@@ -1,8 +1,8 @@
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
-<!ENTITY author "seanmerson">
-<!ENTITY version "2026.07.05i">
+<!ENTITY author "merson316">
+<!ENTITY version "2026.07.05q">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Utilities/MEGAcmd">
@@ -12,8 +12,70 @@
 <!ENTITY rawbase "https://raw.githubusercontent.com/&github;/&branch;">
 <!ENTITY pkgpath "/boot/config/plugins/&name;/&name;-plugin-&version;-x86_64-1.txz">
 ]>
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="fa-cloud-upload-alt" support="https://github.com/&github;">
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05q
+- Reformatted README.md to match the other installed plugins' description style on the
+  Plugins management list: a bold plugin name on its own line, then the description below,
+  instead of the name folded into the first sentence.
+
+###2026.07.05p
+- Added a plugin description: a short intro paragraph on the settings page itself, and a
+  README.md so Settings > Plugins shows a real description instead of just the bare plugin name.
+- Fixed: the icon didn't show on the Settings tab's tile grid (Utilities > MEGAcmd tile) --
+  that specific renderer reads the .page file's Icon= header and looks in images/, a third
+  icon location distinct from both the sidebar menu's icons/ folder and the Plugin Manager
+  list's images/ lookup (which is keyed by the .plg's icon= attribute instead). Standardized
+  the .plg and .page icon references on the same filename so one images/icon.png satisfies both.
+
+###2026.07.05o
+- Fixed: every mega-* script under /opt/megacmd/bin internally calls a bare "mega-exec ...",
+  which resolved back through the /usr/local/bin/mega-* wrapper (mega-exec is symlinked too),
+  causing the wrapper to attempt a second setpriv from an already-dropped-privilege (nobody)
+  process -- setgroups() can only be called while still root, so every terminal mega-* command
+  introduced in 2026.07.05n (e.g. mega-whoami, mega-sync) failed with "setpriv: setgroups
+  failed: Operation not permitted". The wrapper now puts /opt/megacmd/bin first on PATH so the
+  internal call resolves straight to the real binary instead of back through itself.
+
+###2026.07.05n
+- Fixed: mega-cmd-server ran as root (rc.d scripts run as root), so every downloaded/synced
+  file -- and MEGAcmd's own .debris/.megaignore housekeeping files -- landed on user shares
+  owned by root instead of Unraid's normal nobody:users, breaking read/write access for Docker
+  containers and other users. The server now runs as nobody:users (uid 99/gid 100) via setpriv.
+  MEGAcmd's client/server IPC only works when both sides run as the same uid -- a mismatched-uid
+  client fails to detect the real server at all and silently spawns a second, conflicting one --
+  so every client invocation (the webGUI's megaExec() and the /usr/local/bin/mega-* wrapper used
+  from a terminal/SSH session) now runs as nobody too, via the same mechanism.
+  Note: this only fixes file ownership going forward. Any files already downloaded/synced before
+  this update (created while the server ran as root) keep their existing root ownership and may
+  need a one-time manual "chown -R nobody:users" pass over the affected folder after upgrading; an in-progress transfer
+  at upgrade time may need its sync removed and re-added to resume writing to its partial file.
+
+###2026.07.05m
+- Added a "Sync history" card to the settings page, showing completed sync transfers
+  (mega-transfers --show-completed --show-syncs) alongside the existing "Current syncs" list.
+
+###2026.07.05l
+- Added a way to check for and apply newer MEGAcmd releases without waiting for a new plugin
+  release: a "MEGAcmd version" card on the settings page shows the installed version and, on
+  request, queries MEGA's own repo listing for the newest available build. If newer, an
+  "Update to X.Y.Z" button fetches and installs it immediately (via the same fetch-megacmd.sh
+  used at install time) and rewrites the megacmd_version entity in the locally-installed
+  /boot/config/plugins/megacmd.plg -- that file is what Unraid actually re-reads and reinstalls
+  from on every boot, so without this the update would silently revert on next reboot.
+
+###2026.07.05k
+- Fixed: the &author; entity was still "seanmerson" (a stale placeholder), not matching the
+  actual GitHub account this plugin is published under (merson316, per the &github; entity
+  used everywhere else in this file).
+
+###2026.07.05j
+- Replaced the generic FontAwesome cloud-upload icon with a real MEGA-branded icon
+  (the official MEGA "M" glyph in brand red, sourced from Simple Icons and rendered locally
+  to PNG) in both places Unraid shows a plugin icon: the Utilities sidebar menu item
+  (source/.../megacmd/icons/icon.png) and the Plugin Manager's installed-plugins list
+  (source/.../megacmd/images/megacmd.png).
+
 ###2026.07.05i
 - Fixed: mega-* commands were only reachable via /opt/megacmd/bin (not on PATH) and via the
   /etc/profile.d convenience script, which only applies to login shells -- the Unraid webGUI
@@ -94,7 +156,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>8ec3bb4b130d88d79760b20e560587d5</MD5>
+    <MD5>23fbe811bfedb90796ef0fdceafdc784</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

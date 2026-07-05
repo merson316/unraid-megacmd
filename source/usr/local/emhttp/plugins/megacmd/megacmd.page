@@ -1,6 +1,6 @@
 Menu="Utilities"
 Title="MEGAcmd"
-Icon="fa-cloud-upload-alt"
+Icon="icon.png"
 ---
 <?
 require_once "/usr/local/emhttp/plugins/megacmd/include/common.php";
@@ -9,10 +9,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $message = $_SESSION['megacmd_message'] ?? "";
 unset($_SESSION['megacmd_message']);
 
+$installedMegacmdVersion = getPlgEntity('megacmd_version');
+$latestMegacmdVersion = $_SESSION['megacmd_latest_checked'] ?? null;
+
 $running = serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
+$syncHistory = $running && $loggedIn
+  ? megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=40")["output"]
+  : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 
@@ -65,7 +71,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   border-radius: 4px;
 }
 .megacmd-hint { display: block; color: #888; font-size: 0.85em; margin-top: 4px; }
+.megacmd-intro { margin: 0 0 20px; color: #aaa; }
 </style>
+
+<p class="megacmd-intro">Sync files between your MEGA cloud storage account and any Unraid share, powered by MEGAcmd (MEGA's official command-line client). Log in below, then add syncs between a local path and a MEGA folder.</p>
 
 <div class="megacmd-box">
   <h3>Service</h3>
@@ -83,6 +92,28 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <form class="megacmd-ajax-form" method="post" style="display:inline">
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
+  </form>
+</div>
+
+<div class="megacmd-box">
+  <h3>MEGAcmd version</h3>
+  <p>Installed: <code class="megacmd-email"><?= htmlspecialchars($installedMegacmdVersion) ?></code></p>
+  <? if ($latestMegacmdVersion !== null): ?>
+    <? if (version_compare($latestMegacmdVersion, $installedMegacmdVersion, '>')): ?>
+      <p>Update available: <code class="megacmd-email"><?= htmlspecialchars($latestMegacmdVersion) ?></code></p>
+      <form class="megacmd-ajax-form" method="post" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+        <input type="hidden" name="action" value="updatemegacmd">
+        <button type="submit">Update to <?= htmlspecialchars($latestMegacmdVersion) ?></button>
+      </form>
+    <? else: ?>
+      <p>Already up to date.</p>
+    <? endif; ?>
+  <? endif; ?>
+  <form class="megacmd-ajax-form" method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+    <input type="hidden" name="action" value="checkmegacmdupdate">
+    <button type="submit">Check for updates</button>
   </form>
 </div>
 
@@ -116,6 +147,15 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 <div class="megacmd-box">
   <h3>Current syncs</h3>
   <div class="megacmd-msg"><?= htmlspecialchars($syncList) ?></div>
+</div>
+
+<div class="megacmd-box">
+  <h3>Sync history</h3>
+  <? if (trim($syncHistory) !== ""): ?>
+    <div class="megacmd-msg"><?= htmlspecialchars($syncHistory) ?></div>
+  <? else: ?>
+    <p>No completed sync transfers yet.</p>
+  <? endif; ?>
 </div>
 
 <div class="megacmd-box">

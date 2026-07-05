@@ -8,6 +8,12 @@ MEGACMD_BIN="/opt/megacmd/bin"
 MEGACMD_LIB="/opt/megacmd/lib"
 PIDFILE="/var/run/megacmd.pid"
 LOGFILE="$MEGACMD_HOME/server.log"
+# Run the server as nobody:users (Unraid's standard share owner) instead of root -- rc.d
+# scripts run as root, and mega-cmd-server otherwise creates every downloaded/synced file
+# (and its own .debris/.megaignore housekeeping files) as root, breaking read/write access
+# from Docker containers and other users that expect normal nobody:users-owned share content.
+RUN_UID=99
+RUN_GID=100
 
 export HOME="$MEGACMD_HOME"
 export LD_LIBRARY_PATH="$MEGACMD_LIB${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -23,8 +29,10 @@ start() {
     return 0
   fi
   mkdir -p "$MEGACMD_HOME"
+  chown -R "$RUN_UID:$RUN_GID" "$MEGACMD_HOME"
   echo "Starting mega-cmd-server..."
-  nohup "$MEGACMD_BIN/mega-cmd-server" >>"$LOGFILE" 2>&1 &
+  nohup setpriv --reuid="$RUN_UID" --regid="$RUN_GID" --clear-groups -- \
+    "$MEGACMD_BIN/mega-cmd-server" >>"$LOGFILE" 2>&1 &
   echo $! > "$PIDFILE"
   sleep 2
   if ! is_running; then

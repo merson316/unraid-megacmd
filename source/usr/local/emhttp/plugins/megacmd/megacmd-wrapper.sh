@@ -6,4 +6,15 @@
 # different (nonexistent) session under the shell's real $HOME.
 export HOME="/mnt/user/appdata/megacmd/home"
 export LD_LIBRARY_PATH="/opt/megacmd/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-exec "/opt/megacmd/bin/$(basename "$0")" "$@"
+# Every mega-* script under /opt/megacmd/bin internally calls a bare "mega-exec ..." -- putting
+# /opt/megacmd/bin first on PATH makes that resolve straight to the real binary instead of back
+# through this same wrapper (which is also symlinked as /usr/local/bin/mega-exec). Without this,
+# the inner call would re-enter this script and attempt a second setpriv from an already-dropped
+# (non-root) process, and setgroups() can only be called while still root -- it fails silently
+# uninformative-looking ("setgroups failed: Operation not permitted") otherwise.
+export PATH="/opt/megacmd/bin:$PATH"
+# Runs as nobody:users, matching rc.megacmd's mega-cmd-server -- MEGAcmd's client/server IPC
+# only works when both sides run as the same uid; invoked from a root terminal/SSH session
+# (Unraid's default), a mismatched-uid client fails to detect the real server and silently
+# spawns a second, conflicting one instead of talking to it.
+exec setpriv --reuid=99 --regid=100 --clear-groups -- "/opt/megacmd/bin/$(basename "$0")" "$@"
