@@ -15,204 +15,91 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
 ###2026.07.05w
-- Added a "Backup history" card (mega-backup -h), showing each individual scheduled backup
-  run and whether it completed, was interrupted, or got skipped -- distinct from "Current
-  backups", which only shows the ongoing configuration, not past runs. Verified against a real
-  throwaway backup let to complete once, to confirm the actual output format.
-- Reordered cards within the Syncs and Backups group so sync-related and backup-related cards
-  are grouped together instead of interleaved: Current syncs, Sync history, Current backups,
-  Backup history, then the shared Add/Remove actions.
+- Added a backup history view showing the outcome of each scheduled backup.
+- Grouped related sync and backup sections together for easier navigation.
 
 ###2026.07.05v
-- "Remove backup" is now a dropdown of configured backups (tag, local path, remote path),
-  matching "Remove sync", instead of a free-text field for the tag/path. mega-backup has no
-  --col-separator option like mega-sync/mega-transfers do, so the parser slices its fixed-width
-  table by the column offsets found in its own header row instead (robust against spaces in
-  local paths). Verified against a real throwaway backup created and removed during development
-  specifically to confirm the actual output format rather than guessing at it.
+- "Remove backup" is now a simple dropdown selection, matching "Remove sync".
 
 ###2026.07.05u
-- Reworked the settings page layout based on feedback that the previous flat list of cards
-  (with "Add sync" not mentioning backups at all) was confusing:
-  - "Add sync" renamed to "Add sync or backup", matching what it actually does.
-  - Cards reordered and grouped into three visually distinct sections (each with its own accent
-    color and heading): Connection (Service, Account), Syncs and Backups (Current syncs, Current
-    backups, Sync history, Add sync or backup, Remove sync, Remove backup), and Maintenance and
-    Settings (MEGAcmd version, Settings).
-  - Every section now has inline help text (Unraid's standard "press the Help button, top
-    right, to reveal it" mechanism -- a plain inline_help blockquote, no custom JS needed)
-    explaining what it does and the difference between a sync and a backup, in plain language
-    for anyone unfamiliar with the plugin.
+- Renamed "Add sync" to "Add sync or backup" for clarity.
+- Reorganized the settings page into clearly labeled sections.
+- Added built-in help text for every section, accessible via Unraid's Help button.
 
 ###2026.07.05t
-- Fixed: every link/reference meant to point at this page's actual URL used "/Utilities/MEGAcmd"
-  (guessed from the &launch; entity), but the real URL is "/Settings/megacmd" -- confirmed by
-  the user's own browser. Fixed the &launch; entity itself, the notification "click to open"
-  link, the Dashboard tile's settings-gear link, and every changelog/README/comment mentioning
-  the wrong path. Menu="Utilities" in megacmd.page is unrelated and unchanged -- that correctly
-  controls which Settings-tab section ("User Utilities") the tile is grouped under, separate
-  from the page's actual URL.
+- Fixed links that pointed to an incorrect settings page address.
 
 ###2026.07.05s
-- Dashboard tile now has the same "go to settings" (gear) and "show/hide content" (chevron)
-  controls other tiles have (e.g. GPU Statistics), by adopting Unraid's standard tile-header
-  markup structure -- the chevron/dismiss controls are actually injected automatically by
-  Unraid's own dashboard JS for any tile using this structure; only the gear link is ours.
+- Added quick-access and show/hide controls to the Dashboard tile, matching other Unraid dashboard tiles.
 
 ###2026.07.05r
-- Added a repo LICENSE (MIT).
-- Added Unraid notifications (bell/email, via dynamix's notify script) for problems: service
-  crashed, unexpectedly logged out, sync errors, MEGA bandwidth quota reached, and available
-  MEGAcmd updates. Configurable (on by default) from a new Settings card.
-- Added a watchdog: checked every 5 minutes via cron, restarts the service automatically if it's
-  crashed. Configurable (on by default) from the same Settings card.
-- Added configurable upload/download speed limits (mega-speedlimit), re-applied on every login
-  since MEGAcmd only remembers them for the life of a session.
-- Added log rotation (/etc/logrotate.d/megacmd) for server.log/megacmdserver.log/watchdog.log --
-  these live under /mnt/user/appdata, outside Unraid's own /var/log rotation scope, and would
-  otherwise grow unbounded.
-- Added one-way backups as an alternative to two-way sync in the Add form, using MEGA's own
-  mega-backup (currently in BETA upstream), with configurable period and retention count. New
-  "Current backups" and "Remove backup" cards to match.
-- Added a Dashboard tile showing login status, active sync count, and installed MEGAcmd version
-  at a glance.
-- Investigated Fix Common Problems integration: not feasible -- it's a closed, first-party-only
-  checklist with no third-party registration API, unlike the notify/cron/dashboard mechanisms
-  above which are all genuinely open, documented Unraid conventions.
-- No code needed for Backup/Restore Appdata compatibility -- our persistent state already lives
-  under /mnt/user/appdata/megacmd and is automatically included like any other appdata folder;
-  documented this in the README instead.
+- Added optional Unraid notifications for service problems, sync errors, and available MEGAcmd updates.
+- Added automatic service recovery if it ever crashes.
+- Added configurable upload and download speed limits.
+- Added log rotation to prevent log files from growing indefinitely.
+- Added one-way backups as an alternative to two-way sync.
+- Added a Dashboard tile showing sync status at a glance.
+- Added an open-source license.
 
 ###2026.07.05q
-- Reformatted README.md to match the other installed plugins' description style on the
-  Plugins management list: a bold plugin name on its own line, then the description below,
-  instead of the name folded into the first sentence.
+- Improved the formatting of the plugin description on the Plugins page.
 
 ###2026.07.05p
-- Added a plugin description: a short intro paragraph on the settings page itself, and a
-  README.md so Settings > Plugins shows a real description instead of just the bare plugin name.
-- Fixed: the icon didn't show on the Settings tab's tile grid (Settings > MEGAcmd tile) --
-  that specific renderer reads the .page file's Icon= header and looks in images/, a third
-  icon location distinct from both the sidebar menu's icons/ folder and the Plugin Manager
-  list's images/ lookup (which is keyed by the .plg's icon= attribute instead). Standardized
-  the .plg and .page icon references on the same filename so one images/icon.png satisfies both.
+- Added a plugin description to the Plugins page and settings page.
+- Fixed the plugin icon not appearing in the Settings tab's tile view.
 
 ###2026.07.05o
-- Fixed: every mega-* script under /opt/megacmd/bin internally calls a bare "mega-exec ...",
-  which resolved back through the /usr/local/bin/mega-* wrapper (mega-exec is symlinked too),
-  causing the wrapper to attempt a second setpriv from an already-dropped-privilege (nobody)
-  process -- setgroups() can only be called while still root, so every terminal mega-* command
-  introduced in 2026.07.05n (e.g. mega-whoami, mega-sync) failed with "setpriv: setgroups
-  failed: Operation not permitted". The wrapper now puts /opt/megacmd/bin first on PATH so the
-  internal call resolves straight to the real binary instead of back through itself.
+- Fixed MEGAcmd terminal commands failing after the previous permissions fix.
 
 ###2026.07.05n
-- Fixed: mega-cmd-server ran as root (rc.d scripts run as root), so every downloaded/synced
-  file -- and MEGAcmd's own .debris/.megaignore housekeeping files -- landed on user shares
-  owned by root instead of Unraid's normal nobody:users, breaking read/write access for Docker
-  containers and other users. The server now runs as nobody:users (uid 99/gid 100) via setpriv.
-  MEGAcmd's client/server IPC only works when both sides run as the same uid -- a mismatched-uid
-  client fails to detect the real server at all and silently spawns a second, conflicting one --
-  so every client invocation (the webGUI's megaExec() and the /usr/local/bin/mega-* wrapper used
-  from a terminal/SSH session) now runs as nobody too, via the same mechanism.
-  Note: this only fixes file ownership going forward. Any files already downloaded/synced before
-  this update (created while the server ran as root) keep their existing root ownership and may
-  need a one-time manual "chown -R nobody:users" pass over the affected folder after upgrading; an in-progress transfer
-  at upgrade time may need its sync removed and re-added to resume writing to its partial file.
+- Fixed synced files being created with incorrect ownership; they now match Unraid's standard permissions.
 
 ###2026.07.05m
-- Added a "Sync history" card to the settings page, showing completed sync transfers
-  (mega-transfers --show-completed --show-syncs) alongside the existing "Current syncs" list.
+- Added a sync history view showing completed transfers.
 
 ###2026.07.05l
-- Added a way to check for and apply newer MEGAcmd releases without waiting for a new plugin
-  release: a "MEGAcmd version" card on the settings page shows the installed version and, on
-  request, queries MEGA's own repo listing for the newest available build. If newer, an
-  "Update to X.Y.Z" button fetches and installs it immediately (via the same fetch-megacmd.sh
-  used at install time) and rewrites the megacmd_version entity in the locally-installed
-  /boot/config/plugins/megacmd.plg -- that file is what Unraid actually re-reads and reinstalls
-  from on every boot, so without this the update would silently revert on next reboot.
+- Added the ability to check for and install newer MEGAcmd releases directly from the settings page.
 
 ###2026.07.05k
-- Fixed: the &author; entity was still "seanmerson" (a stale placeholder), not matching the
-  actual GitHub account this plugin is published under (merson316, per the &github; entity
-  used everywhere else in this file).
+- Corrected the plugin author information.
 
 ###2026.07.05j
-- Replaced the generic FontAwesome cloud-upload icon with a real MEGA-branded icon
-  (the official MEGA "M" glyph in brand red, sourced from Simple Icons and rendered locally
-  to PNG) in both places Unraid shows a plugin icon: the Utilities sidebar menu item
-  (source/.../megacmd/icons/icon.png) and the Plugin Manager's installed-plugins list
-  (source/.../megacmd/images/megacmd.png).
+- Replaced the generic plugin icon with official MEGA branding.
 
 ###2026.07.05i
-- Fixed: mega-* commands were only reachable via /opt/megacmd/bin (not on PATH) and via the
-  /etc/profile.d convenience script, which only applies to login shells -- the Unraid webGUI
-  terminal (and some SSH configurations) opens a non-login shell, so mega-whoami etc. genuinely
-  produced "command not found" there, exactly as reported. Every mega-* command is now symlinked
-  into /usr/local/bin (already on PATH for every shell) via a wrapper that sets HOME/LD_LIBRARY_PATH
-  so it always talks to the same persistent session the background service uses. Removed the old
-  profile.d script (superseded) and the megacmd() helper function it defined.
+- Fixed "command not found" errors when running MEGAcmd commands from a terminal or SSH session.
 
 ###2026.07.05h
-- Replaced table-based form layouts with label-above-field groups: fixes the Remote path label
-  rendering vertically centered/misaligned against its two stacked controls (a table-cell
-  vertical-align artifact), and adds a real gap between the Local path and Remote path fields.
-- Current syncs / Remove sync now explicitly fill the full available card width instead of an
-  arbitrary cap; long values ellipsize only if the actual rendered width is too small to show them,
-  rather than being pre-truncated server-side regardless of available space.
+- Improved field spacing and alignment on the settings page.
+- Long file paths now display more cleanly.
 
 ###2026.07.05g
-- Fixed: the previous select-width fix wasn't enough -- the remote folder dropdown and its text
-  field were still side by side and together wider than their container, still forcing the whole
-  page to scroll horizontally. They (and all text/password inputs) are now stacked full-width
-  blocks instead of inline, which also fully contains the width regardless of dropdown content.
-- Remove sync's Remove button now sits below its dropdown instead of beside it.
-- Account e-mail now rendered in a code-block style (monospace, subtle background chip).
+- Fixed remaining cases of the settings page scrolling horizontally.
+- Improved the styling of the displayed account email.
 
 ###2026.07.05f
-- Fixed: megacmd.page required its own include/common.php via __DIR__, which resolves to Unraid's
-  page-rendering internals (not the plugin's own folder) since .page content runs through eval(),
-  not a normal file include. Would have fataled with "failed to open stream" on the live site.
-  Switched to a hardcoded absolute path, matching the convention other Unraid plugins use for
-  exactly this reason.
+- Fixed a bug that could prevent the settings page from loading.
 
 ###2026.07.05e
-- Fixed: page-wide horizontal overflow caused by a dropdown auto-sizing to its longest option
-  text (long sync paths) -- long labels are now truncated for display and dropdowns are width-capped.
-- Fixed: every visit/refresh of the page was replaying the last form action (e.g. re-running
-  addsync, producing a repeated "Already exists" error) because forms POSTed directly back to the
-  page itself with no way to redirect afterward. All actions now go through a dedicated AJAX
-  endpoint (include/action.php); the page itself is GET-only and never re-executes an action on
-  reload, with the result shown once via a session flash message.
+- Fixed the settings page scrolling horizontally on long file paths.
+- Fixed actions being repeated unintentionally when refreshing the settings page.
 
 ###2026.07.05d
-- Cosmetic pass: account e-mail now visually emphasized; service status capitalized (Running/Stopped);
-  each section (Service/Account/Current syncs/Add sync/Remove sync) is now its own visually separated card;
-  Remote path picker and text field grouped together with a clarifying hint instead of feeling like two
-  conflicting controls; Remove sync is now a populated dropdown of existing syncs instead of free-text ID entry.
+- Redesigned the settings page with clearer, separated sections and a dropdown for removing syncs.
 
 ###2026.07.05c
-- Local path in Add Sync now uses Unraid's own embedded file explorer widget (jquery.filetree,
-  the same one Docker/VM path pickers use) rooted at /mnt/user, instead of a plain share dropdown.
+- Local folder selection now uses Unraid's built-in folder browser.
 
 ###2026.07.05b
-- Added a local share dropdown (populated from Unraid's own share list) and a MEGA remote-folder
-  dropdown (queried live via mega-ls) to the Add Sync form, so paths can be picked instead of typed
-  from scratch. Both still feed into an editable text field for deeper subfolders.
+- Added dropdown pickers for local shares and existing MEGA folders when adding a sync.
 
 ###2026.07.05
-- Fixed: WebGUI forms were missing the required csrf_token field, so every button (login, sync,
-  service start/stop) silently failed with a blank white page -- Unraid's webGUI blocks any POST
-  request without a valid CSRF token and exits with no output.
+- Fixed a bug causing every button on the settings page (login, sync, service control) to silently fail.
 
 ###2026.07.04
-- Initial GitHub-tracked release.
-- Plugin logic (rc.d script, webGUI page, array event hooks) is hosted in this repo and installed as a
-  small tracked Slackware package.
-- MEGAcmd binaries are NOT vendored here -- they're fetched fresh from MEGA's own official repo
-  (mega.nz/linux/repo/&megacmd_repo_codename;) at install/update time, pinned to version &megacmd_version;.
-- Persistent login/session/sync state stored at /mnt/user/appdata/megacmd/home.
+- Initial release: sync files between a MEGA account and Unraid shares using MEGA's official command-line client.
+- MEGAcmd binaries are downloaded fresh from MEGA at install time rather than bundled with the plugin.
+- Login, session, and sync configuration persist across reboots.
   </CHANGES>
 
   <!-- Remove stale plugin-logic package files from a previous version -->
