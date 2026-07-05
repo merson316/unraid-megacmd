@@ -24,6 +24,10 @@ $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 $backupList = $running && $loggedIn ? megaExec("mega-backup -l --path-display-size=200")["output"] : "";
 $backups = $running && $loggedIn ? megaListBackups() : [];
+$backupHistory = $running && $loggedIn ? megaExec("mega-backup -h --path-display-size=200")["output"] : "";
+$backupHistoryMarker = "-- HISTORY OF BACKUPS --";
+$pos = strpos($backupHistory, $backupHistoryMarker);
+if ($pos !== false) $backupHistory = substr($backupHistory, $pos);
 
 $accountEmail = "";
 if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
@@ -169,6 +173,20 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 </div>
 
 <div class="megacmd-box">
+  <h3>Sync history</h3>
+  <? if (trim($syncHistory) !== ""): ?>
+    <div class="megacmd-msg"><?= htmlspecialchars($syncHistory) ?></div>
+  <? else: ?>
+    <p>No completed sync transfers yet.</p>
+  <? endif; ?>
+  <blockquote class="inline_help">
+    A log of sync transfers that have already finished or failed -- useful for confirming a sync
+    actually copied everything you expected, or for spotting a problem after the fact. This only
+    covers syncs, not backups.
+  </blockquote>
+</div>
+
+<div class="megacmd-box">
   <h3>Current backups</h3>
   <? if (trim($backupList) !== "" && stripos($backupList, "No backup configured") === false): ?>
     <div class="megacmd-msg"><?= htmlspecialchars($backupList) ?></div>
@@ -185,16 +203,17 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 </div>
 
 <div class="megacmd-box">
-  <h3>Sync history</h3>
-  <? if (trim($syncHistory) !== ""): ?>
-    <div class="megacmd-msg"><?= htmlspecialchars($syncHistory) ?></div>
+  <h3>Backup history</h3>
+  <? if (trim($backupHistory) !== "" && stripos($backupHistory, "No backup configured") === false): ?>
+    <div class="megacmd-msg"><?= htmlspecialchars($backupHistory) ?></div>
   <? else: ?>
-    <p>No completed sync transfers yet.</p>
+    <p>No backup history yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    A log of sync transfers that have already finished or failed -- useful for confirming a sync
-    actually copied everything you expected, or for spotting a problem after the fact. This only
-    covers syncs, not backups.
+    A record of each individual scheduled backup run -- not the ongoing backup configuration
+    itself (shown in "Current backups" above), but whether each past run completed
+    successfully, was interrupted, or got skipped, and how many files and folders it covered.
+    Useful for confirming a scheduled backup actually happened as expected.
   </blockquote>
 </div>
 

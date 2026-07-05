@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05v">
+<!ENTITY version "2026.07.05w">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,15 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05w
+- Added a "Backup history" card (mega-backup -h), showing each individual scheduled backup
+  run and whether it completed, was interrupted, or got skipped -- distinct from "Current
+  backups", which only shows the ongoing configuration, not past runs. Verified against a real
+  throwaway backup let to complete once, to confirm the actual output format.
+- Reordered cards within the Syncs and Backups group so sync-related and backup-related cards
+  are grouped together instead of interleaved: Current syncs, Sync history, Current backups,
+  Backup history, then the shared Add/Remove actions.
+
 ###2026.07.05v
 - "Remove backup" is now a dropdown of configured backups (tag, local path, remote path),
   matching "Remove sync", instead of a free-text field for the tag/path. mega-backup has no
@@ -216,7 +225,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>fd1fe050d492e5c86935b627432c0a14</MD5>
+    <MD5>f8821292defb7cf0e14cf149b97ef25d</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
