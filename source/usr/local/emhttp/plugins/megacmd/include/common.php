@@ -160,6 +160,16 @@ function sanitizeTerminalOutput($text) {
   ]);
 }
 
+// mega-transfers' own column-width calculation for the TYPE field is inconsistent across
+// different symbol combinations -- verified some combinations (e.g. upload+backup) get one
+// fewer padding space than others (e.g. download+sync), even though every combination is the
+// same 2 characters wide after sanitizeTerminalOutput(). That visibly misaligns every column
+// after it. Since TYPE is always exactly 2 characters here, normalize the gap that follows it
+// to a fixed width instead of trusting MEGAcmd's own (inconsistent) padding.
+function fixTransferTypeAlignment($text) {
+  return preg_replace('/^([DUSB]{2})\s+/m', '$1   ', $text);
+}
+
 function megaExec($args) {
   global $megaHome;
   $cmd = "env HOME=" . escapeshellarg($megaHome) .

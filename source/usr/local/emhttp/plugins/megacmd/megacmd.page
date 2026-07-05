@@ -19,7 +19,7 @@ $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncList = $running && $loggedIn ? megaExec("mega-sync --path-display-size=200")["output"] : "";
 $syncHistory = $running && $loggedIn
-  ? megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=200")["output"]
+  ? fixTransferTypeAlignment(megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=200")["output"])
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];

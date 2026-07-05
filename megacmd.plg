@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05.28">
+<!ENTITY version "2026.07.05.29">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,10 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05.29
+- Fixed column alignment in Transfer history -- MEGAcmd's own spacing for the TYPE column was
+  inconsistent between certain transfer-type combinations.
+
 ###2026.07.05.28
 - Added a quick-reference legend at the bottom of Transfer history and Backup history, so the
   codes are visible without needing to press the Help button.
@@ -135,7 +139,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>ae055948e7d27b7b279303eb721de326</MD5>
+    <MD5>4dbe820c2d2ce1c5621ab1d6883d33a9</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
