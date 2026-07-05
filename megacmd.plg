@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05t">
+<!ENTITY version "2026.07.05u">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,19 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05u
+- Reworked the settings page layout based on feedback that the previous flat list of cards
+  (with "Add sync" not mentioning backups at all) was confusing:
+  - "Add sync" renamed to "Add sync or backup", matching what it actually does.
+  - Cards reordered and grouped into three visually distinct sections (each with its own accent
+    color and heading): Connection (Service, Account), Syncs and Backups (Current syncs, Current
+    backups, Sync history, Add sync or backup, Remove sync, Remove backup), and Maintenance and
+    Settings (MEGAcmd version, Settings).
+  - Every section now has inline help text (Unraid's standard "press the Help button, top
+    right, to reveal it" mechanism -- a plain inline_help blockquote, no custom JS needed)
+    explaining what it does and the difference between a sync and a backup, in plain language
+    for anyone unfamiliar with the plugin.
+
 ###2026.07.05t
 - Fixed: every link/reference meant to point at this page's actual URL used "/Utilities/MEGAcmd"
   (guessed from the &launch; entity), but the real URL is "/Settings/megacmd" -- confirmed by
@@ -195,7 +208,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>449f8c7861d2715d7b30c64d96b513ab</MD5>
+    <MD5>31c289c72044548578f2ab16d4a5f603</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

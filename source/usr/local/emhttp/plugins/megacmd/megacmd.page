@@ -32,6 +32,16 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
 <script src="/webGui/javascript/jquery.filetree.js" charset="utf-8"></script>
 <style>
+.megacmd-group-title {
+  font-size: 1.25em;
+  margin: 28px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid rgba(128,128,128,0.3);
+}
+.megacmd-group-title:first-of-type { margin-top: 0; }
+.megacmd-group-connection .megacmd-box { border-left: 4px solid #4a90d9; }
+.megacmd-group-syncs .megacmd-box { border-left: 4px solid #4a4; }
+.megacmd-group-maintenance .megacmd-box { border-left: 4px solid #999; }
 .megacmd-box {
   margin-bottom: 20px;
   padding: 14px 18px 18px;
@@ -76,7 +86,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 .megacmd-intro { margin: 0 0 20px; color: #aaa; }
 </style>
 
-<p class="megacmd-intro">Sync files between your MEGA cloud storage account and any Unraid share, powered by MEGAcmd (MEGA's official command-line client). Log in below, then add syncs between a local path and a MEGA folder.</p>
+<p class="megacmd-intro">Sync files between your MEGA cloud storage account and any Unraid share, powered by MEGAcmd (MEGA's official command-line client). Press the Help button (top right) at any time to see what each section below does.</p>
+
+<h2 class="megacmd-group-title">Connection</h2>
+<div class="megacmd-group megacmd-group-connection">
 
 <div class="megacmd-box">
   <h3>Service</h3>
@@ -95,56 +108,12 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
   </form>
-</div>
-
-<div class="megacmd-box">
-  <h3>MEGAcmd version</h3>
-  <p>Installed: <code class="megacmd-email"><?= htmlspecialchars($installedMegacmdVersion) ?></code></p>
-  <? if ($latestMegacmdVersion !== null): ?>
-    <? if (version_compare($latestMegacmdVersion, $installedMegacmdVersion, '>')): ?>
-      <p>Update available: <code class="megacmd-email"><?= htmlspecialchars($latestMegacmdVersion) ?></code></p>
-      <form class="megacmd-ajax-form" method="post" style="display:inline">
-        <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-        <input type="hidden" name="action" value="updatemegacmd">
-        <button type="submit">Update to <?= htmlspecialchars($latestMegacmdVersion) ?></button>
-      </form>
-    <? else: ?>
-      <p>Already up to date.</p>
-    <? endif; ?>
-  <? endif; ?>
-  <form class="megacmd-ajax-form" method="post" style="display:inline">
-    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-    <input type="hidden" name="action" value="checkmegacmdupdate">
-    <button type="submit">Check for updates</button>
-  </form>
-</div>
-
-<div class="megacmd-box">
-  <h3>Settings</h3>
-  <form class="megacmd-ajax-form" method="post">
-    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-    <input type="hidden" name="action" value="savesettings">
-    <div class="megacmd-field">
-      <label><input type="checkbox" name="notify" value="yes" <?= $cfg['NOTIFY'] === 'yes' ? 'checked' : '' ?>>
-        Send Unraid notifications for problems (service crashed, logged out unexpectedly, sync
-        errors, MEGA bandwidth quota reached, MEGAcmd update available)</label>
-    </div>
-    <div class="megacmd-field">
-      <label><input type="checkbox" name="watchdog" value="yes" <?= $cfg['WATCHDOG'] === 'yes' ? 'checked' : '' ?>>
-        Automatically restart the service if it crashes (checked every 5 minutes)</label>
-    </div>
-    <div class="megacmd-field megacmd-narrow">
-      <label>Upload speed limit</label>
-      <input type="text" name="speedlimit_up" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_UP']) ?>" placeholder="unlimited">
-      <small class="megacmd-hint">e.g. "2M" for 2 MB/s. Leave blank for unlimited.</small>
-    </div>
-    <div class="megacmd-field megacmd-narrow">
-      <label>Download speed limit</label>
-      <input type="text" name="speedlimit_down" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_DOWN']) ?>" placeholder="unlimited">
-      <small class="megacmd-hint">e.g. "10M" for 10 MB/s. Leave blank for unlimited.</small>
-    </div>
-    <button type="submit">Save settings</button>
-  </form>
+  <blockquote class="inline_help">
+    This runs the background process that actually performs your syncs and backups -- it needs
+    to be Running before anything else on this page will work. Stop only pauses it (your syncs
+    and backups stay configured and will resume once started again); Restart is useful if
+    something seems stuck.
+  </blockquote>
 </div>
 
 <? if ($running): ?>
@@ -171,12 +140,47 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       <button type="submit">Login</button>
     </form>
   <? endif; ?>
+  <blockquote class="inline_help">
+    Connects this Unraid server to your MEGA account so it can access your cloud storage. Enter
+    the same email and password you use to log into MEGA. If you have two-factor authentication
+    (2FA) turned on for your MEGA account, also enter the current 6-digit code from your
+    authenticator app. Logging out disconnects the account, but any syncs or backups you've
+    configured stay in place and will resume once you log back in.
+  </blockquote>
+</div>
+<? endif; ?>
+
 </div>
 
-<? if ($loggedIn): ?>
+<? if ($running && $loggedIn): ?>
+<h2 class="megacmd-group-title">Syncs &amp; Backups</h2>
+<div class="megacmd-group megacmd-group-syncs">
+
 <div class="megacmd-box">
   <h3>Current syncs</h3>
   <div class="megacmd-msg"><?= htmlspecialchars($syncList) ?></div>
+  <blockquote class="inline_help">
+    A sync keeps a folder on this server and a folder on MEGA continuously matching each other:
+    change, add, or delete a file in either place and the same change happens on the other side
+    automatically. This lists every sync currently configured below, and roughly how much data
+    each one covers.
+  </blockquote>
+</div>
+
+<div class="megacmd-box">
+  <h3>Current backups</h3>
+  <? if (trim($backupList) !== "" && stripos($backupList, "No backup configured") === false): ?>
+    <div class="megacmd-msg"><?= htmlspecialchars($backupList) ?></div>
+  <? else: ?>
+    <p>No backups configured.</p>
+  <? endif; ?>
+  <blockquote class="inline_help">
+    Unlike a sync, a backup is one-way and runs on a schedule: at the interval you choose,
+    MEGAcmd takes a fresh snapshot of a local folder and uploads it to a new dated folder on
+    MEGA, automatically deleting your oldest snapshot once you exceed the number you asked to
+    keep. Files deleted locally are never removed from snapshots already uploaded. MEGA itself
+    still labels this feature BETA.
+  </blockquote>
 </div>
 
 <div class="megacmd-box">
@@ -186,10 +190,15 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <? else: ?>
     <p>No completed sync transfers yet.</p>
   <? endif; ?>
+  <blockquote class="inline_help">
+    A log of sync transfers that have already finished or failed -- useful for confirming a sync
+    actually copied everything you expected, or for spotting a problem after the fact. This only
+    covers syncs, not backups.
+  </blockquote>
 </div>
 
 <div class="megacmd-box">
-  <h3>Add sync</h3>
+  <h3>Add sync or backup</h3>
   <form class="megacmd-ajax-form" method="post">
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="addsync">
@@ -226,8 +235,14 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         <input type="text" name="numbackups" value="7">
       </div>
     </div>
-    <button type="submit">Add sync</button>
+    <button type="submit">Add</button>
   </form>
+  <blockquote class="inline_help">
+    Set up a new sync or backup. Choose "Two-way sync" for a folder that should always mirror a
+    MEGA folder, or "One-way backup" for scheduled snapshots instead (see the explanations above
+    for the difference). Pick a local folder on this server and a MEGA folder to pair it with --
+    if the MEGA folder doesn't already exist, it will be created automatically.
+  </blockquote>
 </div>
 
 <div class="megacmd-box">
@@ -248,15 +263,11 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       <p>No syncs configured.</p>
     <? endif; ?>
   </form>
-</div>
-
-<div class="megacmd-box">
-  <h3>Current backups</h3>
-  <? if (trim($backupList) !== "" && stripos($backupList, "No backup configured") === false): ?>
-    <div class="megacmd-msg"><?= htmlspecialchars($backupList) ?></div>
-  <? else: ?>
-    <p>No backups configured.</p>
-  <? endif; ?>
+  <blockquote class="inline_help">
+    Stops and removes a configured sync from the list above. This does not delete any files
+    already copied to MEGA or kept on this server -- it only stops keeping the two sides in sync
+    going forward.
+  </blockquote>
 </div>
 
 <div class="megacmd-box">
@@ -270,9 +281,82 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     </div>
     <button type="submit">Remove</button>
   </form>
+  <blockquote class="inline_help">
+    Stops a configured backup. Like removing a sync, this does not delete any backup snapshots
+    MEGAcmd has already uploaded to MEGA.
+  </blockquote>
+</div>
+
 </div>
 <? endif; ?>
-<? endif; ?>
+
+<h2 class="megacmd-group-title">Maintenance &amp; Settings</h2>
+<div class="megacmd-group megacmd-group-maintenance">
+
+<div class="megacmd-box">
+  <h3>MEGAcmd version</h3>
+  <p>Installed: <code class="megacmd-email"><?= htmlspecialchars($installedMegacmdVersion) ?></code></p>
+  <? if ($latestMegacmdVersion !== null): ?>
+    <? if (version_compare($latestMegacmdVersion, $installedMegacmdVersion, '>')): ?>
+      <p>Update available: <code class="megacmd-email"><?= htmlspecialchars($latestMegacmdVersion) ?></code></p>
+      <form class="megacmd-ajax-form" method="post" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+        <input type="hidden" name="action" value="updatemegacmd">
+        <button type="submit">Update to <?= htmlspecialchars($latestMegacmdVersion) ?></button>
+      </form>
+    <? else: ?>
+      <p>Already up to date.</p>
+    <? endif; ?>
+  <? endif; ?>
+  <form class="megacmd-ajax-form" method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+    <input type="hidden" name="action" value="checkmegacmdupdate">
+    <button type="submit">Check for updates</button>
+  </form>
+  <blockquote class="inline_help">
+    MEGAcmd is MEGA's own software that this plugin relies on to talk to your MEGA account. MEGA
+    occasionally releases newer versions with bug fixes or improvements; use this to check for
+    and install one without waiting for a new version of this plugin.
+  </blockquote>
+</div>
+
+<div class="megacmd-box">
+  <h3>Settings</h3>
+  <form class="megacmd-ajax-form" method="post">
+    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+    <input type="hidden" name="action" value="savesettings">
+    <div class="megacmd-field">
+      <label><input type="checkbox" name="notify" value="yes" <?= $cfg['NOTIFY'] === 'yes' ? 'checked' : '' ?>>
+        Send Unraid notifications for problems (service crashed, logged out unexpectedly, sync
+        errors, MEGA bandwidth quota reached, MEGAcmd update available)</label>
+    </div>
+    <div class="megacmd-field">
+      <label><input type="checkbox" name="watchdog" value="yes" <?= $cfg['WATCHDOG'] === 'yes' ? 'checked' : '' ?>>
+        Automatically restart the service if it crashes (checked every 5 minutes)</label>
+    </div>
+    <div class="megacmd-field megacmd-narrow">
+      <label>Upload speed limit</label>
+      <input type="text" name="speedlimit_up" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_UP']) ?>" placeholder="unlimited">
+      <small class="megacmd-hint">e.g. "2M" for 2 MB/s. Leave blank for unlimited.</small>
+    </div>
+    <div class="megacmd-field megacmd-narrow">
+      <label>Download speed limit</label>
+      <input type="text" name="speedlimit_down" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_DOWN']) ?>" placeholder="unlimited">
+      <small class="megacmd-hint">e.g. "10M" for 10 MB/s. Leave blank for unlimited.</small>
+    </div>
+    <button type="submit">Save settings</button>
+  </form>
+  <blockquote class="inline_help">
+    Optional behavior for this plugin. Notifications use Unraid's own notification system to
+    warn you about problems: the service crashing, an unexpected logout, a sync error, MEGA's
+    bandwidth quota being reached, or a MEGAcmd update becoming available. The watchdog
+    automatically restarts the background service if it ever crashes. Speed limits cap how much
+    of your internet connection MEGAcmd is allowed to use, so a big sync or backup doesn't slow
+    down everything else on your network.
+  </blockquote>
+</div>
+
+</div>
 
 <? if ($message !== ""): ?>
 <div class="megacmd-box">
