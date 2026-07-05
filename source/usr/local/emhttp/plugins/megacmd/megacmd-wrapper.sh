@@ -4,7 +4,12 @@
 # the same persistent session directory the mega-cmd-server service uses --
 # otherwise a plain `mega-whoami` typed in a terminal would try to talk to a
 # different (nonexistent) session under the shell's real $HOME.
-export HOME="/mnt/user/appdata/megacmd/home"
+# Respect Unraid's own "Default appdata storage location" (Settings > Docker) instead of
+# assuming /mnt/user/appdata -- it's user-configurable and may point at a direct pool path.
+APPDATA_ROOT="$(grep -oP '(?<=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2>/dev/null)"
+APPDATA_ROOT="${APPDATA_ROOT%/}"
+[ -z "$APPDATA_ROOT" ] && APPDATA_ROOT="/mnt/user/appdata"
+export HOME="$APPDATA_ROOT/megacmd/home"
 export LD_LIBRARY_PATH="/opt/megacmd/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # Every mega-* script under /opt/megacmd/bin internally calls a bare "mega-exec ..." -- putting
 # /opt/megacmd/bin first on PATH makes that resolve straight to the real binary instead of back

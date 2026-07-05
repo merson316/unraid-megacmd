@@ -3,7 +3,12 @@
 # Binaries live under /opt/megacmd, persistent state lives on the array
 # so login/sync configuration survives reboots.
 
-MEGACMD_HOME="/mnt/user/appdata/megacmd/home"
+# Respect Unraid's own "Default appdata storage location" (Settings > Docker) instead of
+# assuming /mnt/user/appdata -- it's user-configurable and may point at a direct pool path.
+APPDATA_ROOT="$(grep -oP '(?<=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2>/dev/null)"
+APPDATA_ROOT="${APPDATA_ROOT%/}"
+[ -z "$APPDATA_ROOT" ] && APPDATA_ROOT="/mnt/user/appdata"
+MEGACMD_HOME="$APPDATA_ROOT/megacmd/home"
 MEGACMD_BIN="/opt/megacmd/bin"
 MEGACMD_LIB="/opt/megacmd/lib"
 PIDFILE="/var/run/megacmd.pid"
@@ -27,6 +32,14 @@ start() {
   if is_running; then
     echo "mega-cmd-server already running (pid $(cat "$PIDFILE"))"
     return 0
+  fi
+  # The appdata root itself (e.g. .../appdata) doesn't need to exist yet -- that's normal and
+  # gets created below -- but its PARENT must already be there, otherwise the array/pool
+  # backing it simply isn't started yet.
+  APPDATA_PARENT="$(dirname "$APPDATA_ROOT")"
+  if [ ! -d "$APPDATA_PARENT" ] && ! { [ "$APPDATA_PARENT" = "/mnt/user" ] && [ -d /mnt/user0 ]; }; then
+    echo "Cannot start: $APPDATA_PARENT is not available yet -- is the array started?"
+    return 1
   fi
   mkdir -p "$MEGACMD_HOME"
   chown -R "$RUN_UID:$RUN_GID" "$MEGACMD_HOME"

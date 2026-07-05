@@ -12,8 +12,9 @@ unset($_SESSION['megacmd_message']);
 $installedMegacmdVersion = getPlgEntity('megacmd_version');
 $latestMegacmdVersion = $_SESSION['megacmd_latest_checked'] ?? null;
 $cfg = getConfig();
+$storageReady = appdataStorageReady();
 
-$running = serviceRunning();
+$running = $storageReady && serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
@@ -98,21 +99,28 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 
 <div class="megacmd-box">
   <h3>Service</h3>
-  <p>Status:
-    <?= $running ? '<span class="megacmd-status-ok">Running</span>' : '<span class="megacmd-status-bad">Stopped</span>' ?>
-  </p>
-  <form class="megacmd-ajax-form" method="post" style="display:inline">
-    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-    <input type="hidden" name="action" value="start"><button type="submit">Start</button>
-  </form>
-  <form class="megacmd-ajax-form" method="post" style="display:inline">
-    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-    <input type="hidden" name="action" value="stop"><button type="submit">Stop</button>
-  </form>
-  <form class="megacmd-ajax-form" method="post" style="display:inline">
-    <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
-    <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
-  </form>
+  <? if (!$storageReady): ?>
+    <p><span class="megacmd-status-bad">Waiting for storage</span></p>
+    <p>MEGAcmd stores its login and sync configuration under your Unraid appdata storage
+    location, which isn't available yet -- this usually just means the array hasn't been
+    started. This page will work as soon as it is.</p>
+  <? else: ?>
+    <p>Status:
+      <?= $running ? '<span class="megacmd-status-ok">Running</span>' : '<span class="megacmd-status-bad">Stopped</span>' ?>
+    </p>
+    <form class="megacmd-ajax-form" method="post" style="display:inline">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+      <input type="hidden" name="action" value="start"><button type="submit">Start</button>
+    </form>
+    <form class="megacmd-ajax-form" method="post" style="display:inline">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+      <input type="hidden" name="action" value="stop"><button type="submit">Stop</button>
+    </form>
+    <form class="megacmd-ajax-form" method="post" style="display:inline">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+      <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
+    </form>
+  <? endif; ?>
   <blockquote class="inline_help">
     This runs the background process that actually performs your syncs and backups -- it needs
     to be Running before anything else on this page will work. Stop only pauses it (your syncs

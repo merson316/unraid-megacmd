@@ -1,5 +1,30 @@
 <?php
-$megaHome = "/mnt/user/appdata/megacmd/home";
+// Unraid's own Docker settings (Settings > Docker > "Default appdata storage location") control
+// where appdata actually lives -- it's user-configurable and not necessarily /mnt/user/appdata
+// (e.g. a direct pool path like /mnt/apps/appdata, bypassing the /mnt/user FUSE layer entirely
+// for performance). Respect that setting instead of assuming the default, falling back to it
+// only if the setting is missing or unreadable.
+function getAppdataRoot() {
+  $cfg = @file_get_contents("/boot/config/docker.cfg");
+  if ($cfg !== false && preg_match('/DOCKER_APP_CONFIG_PATH="([^"]*)"/', $cfg, $m) && trim($m[1]) !== "") {
+    return rtrim($m[1], "/");
+  }
+  return "/mnt/user/appdata";
+}
+
+// Whether the resolved appdata root's underlying storage is actually available yet (array/pool
+// started). Deliberately checks the PARENT of the appdata root, not the root itself -- an
+// "appdata" share that doesn't exist yet is normal and will be created on demand (same as any
+// other plugin or Docker container), but a missing parent means the array/pool isn't up at all.
+function appdataStorageReady() {
+  $root = getAppdataRoot();
+  $parent = dirname($root);
+  if (is_dir($parent)) return true;
+  if ($parent === "/mnt/user" && is_dir("/mnt/user0")) return true;
+  return false;
+}
+
+$megaHome = getAppdataRoot() . "/megacmd/home";
 $rc = "/etc/rc.d/rc.megacmd";
 // The locally-installed copy of our own .plg -- this is what Unraid actually re-reads and
 // re-installs from on every boot (rc.local iterates /boot/config/plugins/*.plg), so rewriting

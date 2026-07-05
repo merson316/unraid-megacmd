@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05w">
+<!ENTITY version "2026.07.05x">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,10 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05x
+- Now respects Unraid's own default appdata storage location setting instead of assuming a fixed path.
+- Shows a clear message when array storage isn't available yet, instead of an ambiguous "Stopped" status.
+
 ###2026.07.05w
 - Added a backup history view showing the outcome of each scheduled backup.
 - Grouped related sync and backup sections together for easier navigation.
@@ -112,7 +116,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>f8821292defb7cf0e14cf149b97ef25d</MD5>
+    <MD5>54e760ebd9fabc32a5cf643fabbfa211</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -130,11 +134,35 @@ rm -f /tmp/megacmd-fetch.sh
        session the service uses), and start the service if the array is already up -->
   <FILE Run="/bin/bash">
     <INLINE>
-mkdir -p /mnt/user/appdata/megacmd/home
+# Respect Unraid's own "Default appdata storage location" (Settings > Docker) instead of
+# assuming /mnt/user/appdata -- it's user-configurable and may point at a direct pool path.
+APPDATA_ROOT="$(grep -oP '(?&lt;=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2&gt;/dev/null)"
+APPDATA_ROOT="${APPDATA_ROOT%/}"
+[ -z "$APPDATA_ROOT" ] &amp;&amp; APPDATA_ROOT="/mnt/user/appdata"
+mkdir -p "$APPDATA_ROOT/megacmd/home" 2&gt;/dev/null
 chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs &plugdir;/megacmd-wrapper.sh &plugdir;/scripts/watchdog.php &plugdir;/scripts/check-update-notify.php 2&gt;/dev/null
 for f in /opt/megacmd/bin/mega-*; do
   ln -sf &plugdir;/megacmd-wrapper.sh "/usr/local/bin/$(basename "$f")"
 done
+
+# Log rotation config is generated here (rather than shipped as a static file) since it needs
+# the same resolved APPDATA_ROOT baked in -- logrotate.d configs can't use shell variables.
+# /etc is part of Unraid's ephemeral rootfs, recreated on every boot along with everything
+# else this block already does, so regenerating it here every time is the correct approach,
+# not a one-off.
+cat &gt; /etc/logrotate.d/&name; &lt;&lt;LOGROTATEEOF
+$APPDATA_ROOT/megacmd/home/server.log
+$APPDATA_ROOT/megacmd/home/.megaCmd/megacmdserver.log
+$APPDATA_ROOT/megacmd/home/watchdog.log {
+  rotate 4
+  notifempty
+  missingok
+  size 5M
+  compress
+  delaycompress
+  su nobody users
+}
+LOGROTATEEOF
 
 # Watchdog (auto-restart + failure notifications, every 5 min) and a daily update check --
 # /boot/config/plugins/&name;/*.cron is combined into the real crontab by update_cron.
