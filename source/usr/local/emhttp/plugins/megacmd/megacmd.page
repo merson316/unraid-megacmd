@@ -17,9 +17,9 @@ $storageReady = appdataStorageReady();
 $running = $storageReady && serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
-$syncList = $running && $loggedIn ? megaExec("mega-sync")["output"] : "";
+$syncList = $running && $loggedIn ? megaExec("mega-sync --path-display-size=200")["output"] : "";
 $syncHistory = $running && $loggedIn
-  ? megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=40")["output"]
+  ? megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=200")["output"]
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
@@ -89,10 +89,21 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   border-radius: 4px;
 }
 .megacmd-hint { display: block; color: #888; font-size: 0.85em; margin-top: 4px; }
-.megacmd-intro { margin: 0 0 20px; color: #aaa; }
+.megacmd-intro { margin: 0 0 12px; color: #aaa; }
+.megacmd-warning {
+  margin: 0 0 20px;
+  padding: 10px 14px;
+  background: rgba(200,150,0,0.1);
+  border: 1px solid rgba(200,150,0,0.35);
+  border-radius: 6px;
+  color: #c90;
+  font-size: 0.9em;
+}
 </style>
 
 <p class="megacmd-intro">Sync files between your MEGA cloud storage account and any Unraid share, powered by MEGAcmd (MEGA's official command-line client). Press the Help button (top right) at any time to see what each section below does.</p>
+
+<p class="megacmd-warning">This plugin stores its login session and all sync/backup configuration under its appdata folder (<code>appdata/megacmd</code>). Most of that is in a hidden <code>.megaCmd</code> subfolder you won't see at a glance -- don't delete the appdata/megacmd folder to "clean up" logs or free space, or you'll be logged out and lose every sync and backup you've configured. The visible <code>server.log</code> file is the only thing safe to delete on its own; use "View recent logs" below instead if you just want to check on things.</p>
 
 <h2 class="megacmd-group-title">Connection</h2>
 <div class="megacmd-group megacmd-group-connection">
@@ -120,12 +131,17 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
       <input type="hidden" name="action" value="restart"><button type="submit">Restart</button>
     </form>
+    <div class="megacmd-stack-btn">
+      <button type="button" onclick="megacmdViewLogs()">View recent logs</button>
+      <button type="button" onclick="window.location.href='/plugins/megacmd/include/download-logs.php'">Download logs</button>
+    </div>
   <? endif; ?>
   <blockquote class="inline_help">
     This runs the background process that actually performs your syncs and backups -- it needs
     to be Running before anything else on this page will work. Stop only pauses it (your syncs
     and backups stay configured and will resume once started again); Restart is useful if
-    something seems stuck.
+    something seems stuck. "View recent logs" and "Download logs" show recent activity, which
+    is useful for troubleshooting.
   </blockquote>
 </div>
 
@@ -181,16 +197,19 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 </div>
 
 <div class="megacmd-box">
-  <h3>Sync history</h3>
+  <h3>Transfer history</h3>
   <? if (trim($syncHistory) !== ""): ?>
     <div class="megacmd-msg"><?= htmlspecialchars($syncHistory) ?></div>
+    <small class="megacmd-hint">TYPE legend: D=Download, U=Upload, S=Sync, B=Backup.</small>
   <? else: ?>
     <p>No completed sync transfers yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    A log of sync transfers that have already finished or failed -- useful for confirming a sync
-    actually copied everything you expected, or for spotting a problem after the fact. This only
-    covers syncs, not backups.
+    A log of completed and failed transfers -- both sync and backup transfers show up here, since
+    MEGAcmd tracks them the same way once finished. Useful for confirming something actually
+    copied everything you expected, or for spotting a problem after the fact. The TYPE column
+    combines a direction with a context: D=Download, U=Upload, S=Sync, B=Backup -- so "DS" means
+    a download that happened as part of a sync, "UB" an upload as part of a backup, and so on.
   </blockquote>
 </div>
 
@@ -214,14 +233,18 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <h3>Backup history</h3>
   <? if (trim($backupHistory) !== "" && stripos($backupHistory, "No backup configured") === false): ?>
     <div class="megacmd-msg"><?= htmlspecialchars($backupHistory) ?></div>
+    <small class="megacmd-hint">STATUS legend: COMPLETE, INCOMPLETE, ABORTED, MISCARRIED, SKIPPED.</small>
   <? else: ?>
     <p>No backup history yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
     A record of each individual scheduled backup run -- not the ongoing backup configuration
-    itself (shown in "Current backups" above), but whether each past run completed
-    successfully, was interrupted, or got skipped, and how many files and folders it covered.
-    Useful for confirming a scheduled backup actually happened as expected.
+    itself (shown in "Current backups" above), but whether each past run finished. STATUS is one
+    of: COMPLETE, INCOMPLETE (a transfer was cancelled or failed), ABORTED (manually cancelled
+    mid-run), MISCARRIED (the service stopped mid-run), or SKIPPED (the service wasn't running
+    when a run was due). This history belongs to the backup's own configuration -- if you remove
+    a backup below, its history here disappears too, even though the transfers it already made
+    still show up permanently in "Transfer history" above.
   </blockquote>
 </div>
 
@@ -401,6 +424,20 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 <? endif; ?>
 
 <script>
+function megacmdViewLogs() {
+  $.get('/plugins/megacmd/include/viewlogs.php', function(data) {
+    var esc = $('<div>').text(data).html();
+    swal({
+      title: '_(Recent logs)_',
+      text: '<pre style="text-align:left;max-height:75vh;overflow:auto;background:#222;color:#0f0;padding:8px;white-space:pre-wrap;word-break:break-all;font-size:0.85em;">' + esc + '</pre>',
+      html: true,
+      width: '90%',
+      confirmButtonText: '_(Close)_'
+    });
+    $('.sweet-alert').css({'width': '90%', 'max-width': '1400px'});
+  });
+}
+
 $(function() {
   $('.megacmd-ajax-form').on('submit', function(e) {
     e.preventDefault();

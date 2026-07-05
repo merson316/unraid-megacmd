@@ -73,6 +73,40 @@ function notify($subject, $description, $importance = "normal") {
   );
 }
 
+// Appends a timestamped line to watchdog.log -- kept deliberately sparse (only notable events,
+// mirroring what already triggers a notify() call) rather than logging every 5-minute check, so
+// it stays a useful diagnostic trail instead of noise.
+function logWatchdog($message) {
+  global $megaHome;
+  $line = "[" . date("Y-m-d H:i:s") . "] " . $message . "\n";
+  @file_put_contents("$megaHome/watchdog.log", $line, FILE_APPEND | LOCK_EX);
+}
+
+// Tails the last $lines of each of our own log files (they live under the appdata home dir,
+// not Unraid's syslog, so there's no other built-in way to see them) for the "View recent logs"
+// / "Download logs" buttons on the settings page.
+function getRecentLogs($lines = 200) {
+  global $megaHome;
+  $sections = [
+    "server.log" => "$megaHome/server.log",
+    ".megaCmd/megacmdserver.log" => "$megaHome/.megaCmd/megacmdserver.log",
+    "watchdog.log" => "$megaHome/watchdog.log",
+  ];
+  $out = "";
+  foreach ($sections as $label => $path) {
+    $out .= "==== $label ====\n";
+    if (file_exists($path)) {
+      $tailOut = [];
+      exec("tail -n " . (int)$lines . " " . escapeshellarg($path) . " 2>&1", $tailOut);
+      $out .= implode("\n", $tailOut) . "\n";
+    } else {
+      $out .= "(not present)\n";
+    }
+    $out .= "\n";
+  }
+  return sanitizeTerminalOutput($out);
+}
+
 function getPlgEntity($entityName) {
   global $plgPath;
   $xml = @file_get_contents($plgPath);
@@ -112,13 +146,27 @@ function getLatestMegacmdVersion($codename) {
 // Runs as nobody:users (uid 99/gid 100), matching rc.megacmd's mega-cmd-server -- MEGAcmd's
 // client/server IPC only works when both sides run as the same uid; a root-run client fails to
 // detect the nobody-run server at all and silently spawns a second, conflicting root-owned one.
+// MEGAcmd's own transfer-type legend (mega-transfers, mega-sync, etc.) uses a handful of Unicode
+// arrow/symbol characters (download/upload/sync/backup) that render inconsistently across
+// browsers/fonts inside a plain monospace text block -- some show as tiny/misaligned glyphs,
+// others as full-color emoji, breaking the terminal-style look. Swap them for plain ASCII letters
+// wherever command output is displayed.
+function sanitizeTerminalOutput($text) {
+  return strtr($text, [
+    "\xE2\x87\x93" => "D", // download
+    "\xE2\x87\x91" => "U", // upload
+    "\xE2\x87\xB5" => "S", // sync
+    "\xE2\x8F\xAB" => "B", // backup
+  ]);
+}
+
 function megaExec($args) {
   global $megaHome;
   $cmd = "env HOME=" . escapeshellarg($megaHome) .
          " LD_LIBRARY_PATH=/opt/megacmd/lib PATH=/opt/megacmd/bin:\$PATH " .
          "setpriv --reuid=99 --regid=100 --clear-groups -- bash -c " . escapeshellarg($args) . " 2>&1";
   exec($cmd, $out, $ret);
-  return array("output" => implode("\n", $out), "code" => $ret);
+  return array("output" => sanitizeTerminalOutput(implode("\n", $out)), "code" => $ret);
 }
 
 // Re-applies the configured upload/download speed limits -- MEGAcmd only remembers these for

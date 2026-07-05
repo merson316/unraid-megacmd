@@ -6,7 +6,7 @@ Adds a Settings > MEGAcmd page to Unraid for syncing files between a [MEGA](http
 
 - Log in/out of a MEGA account, and add/remove two-way syncs between local shares and MEGA folders, with folder pickers on both sides.
 - One-way backups (MEGA's own `mega-backup`, currently in BETA) as an alternative to two-way sync, with a configurable period and retention count.
-- View current syncs, backups, and sync history from the webGUI.
+- View current syncs, backups, transfer history, and backup history from the webGUI.
 - Check for and apply newer MEGAcmd releases without waiting for a new plugin release.
 - A watchdog checks every 5 minutes and restarts the service if it's crashed (configurable).
 - Unraid notifications for problems -- service crashes, unexpected logout, sync errors, MEGA bandwidth quota reached, and available MEGAcmd updates -- instead of having to check the settings page (configurable).

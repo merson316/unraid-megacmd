@@ -14,6 +14,7 @@ $latest = getLatestMegacmdVersion($codename);
 if ($latest === "" || $installed === "") exit(0);
 
 if (version_compare($latest, $installed, ">")) {
+  logWatchdog("MEGAcmd update available: $latest (installed: $installed).");
   notify(
     "MEGAcmd update available",
     "MEGAcmd $latest is available (installed: $installed). Update it from Settings > MEGAcmd.",

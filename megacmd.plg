@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05x">
+<!ENTITY version "2026.07.05.28">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,29 +14,48 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
-###2026.07.05x
+###2026.07.05.28
+- Added a quick-reference legend at the bottom of Transfer history and Backup history, so the
+  codes are visible without needing to press the Help button.
+
+###2026.07.05.27
+- Renamed "Sync history" to "Transfer history" since it always included backup transfers too.
+- Added a legend explaining the transfer-type codes (D/U/S/B) and backup status values.
+- Fixed long file paths being unnecessarily truncated in Current syncs and Transfer history.
+
+###2026.07.05.26
+- Fixed transfer-type symbols rendering inconsistently in Current syncs, Sync history, Current
+  backups, Backup history, and the log viewer.
+- Enlarged the "View recent logs" pop-up.
+
+###2026.07.05.25
+- Added a warning on the settings page explaining that the appdata folder holds login and sync
+  configuration, not just logs, and shouldn't be deleted.
+- Added "View recent logs" and "Download logs" buttons for easier troubleshooting.
+
+###2026.07.05.24
 - Now respects Unraid's own default appdata storage location setting instead of assuming a fixed path.
 - Shows a clear message when array storage isn't available yet, instead of an ambiguous "Stopped" status.
 
-###2026.07.05w
+###2026.07.05.23
 - Added a backup history view showing the outcome of each scheduled backup.
 - Grouped related sync and backup sections together for easier navigation.
 
-###2026.07.05v
+###2026.07.05.22
 - "Remove backup" is now a simple dropdown selection, matching "Remove sync".
 
-###2026.07.05u
+###2026.07.05.21
 - Renamed "Add sync" to "Add sync or backup" for clarity.
 - Reorganized the settings page into clearly labeled sections.
 - Added built-in help text for every section, accessible via Unraid's Help button.
 
-###2026.07.05t
+###2026.07.05.20
 - Fixed links that pointed to an incorrect settings page address.
 
-###2026.07.05s
+###2026.07.05.19
 - Added quick-access and show/hide controls to the Dashboard tile, matching other Unraid dashboard tiles.
 
-###2026.07.05r
+###2026.07.05.18
 - Added optional Unraid notifications for service problems, sync errors, and available MEGAcmd updates.
 - Added automatic service recovery if it ever crashes.
 - Added configurable upload and download speed limits.
@@ -45,56 +64,56 @@
 - Added a Dashboard tile showing sync status at a glance.
 - Added an open-source license.
 
-###2026.07.05q
+###2026.07.05.17
 - Improved the formatting of the plugin description on the Plugins page.
 
-###2026.07.05p
+###2026.07.05.16
 - Added a plugin description to the Plugins page and settings page.
 - Fixed the plugin icon not appearing in the Settings tab's tile view.
 
-###2026.07.05o
+###2026.07.05.15
 - Fixed MEGAcmd terminal commands failing after the previous permissions fix.
 
-###2026.07.05n
+###2026.07.05.14
 - Fixed synced files being created with incorrect ownership; they now match Unraid's standard permissions.
 
-###2026.07.05m
+###2026.07.05.13
 - Added a sync history view showing completed transfers.
 
-###2026.07.05l
+###2026.07.05.12
 - Added the ability to check for and install newer MEGAcmd releases directly from the settings page.
 
-###2026.07.05k
+###2026.07.05.11
 - Corrected the plugin author information.
 
-###2026.07.05j
+###2026.07.05.10
 - Replaced the generic plugin icon with official MEGA branding.
 
-###2026.07.05i
+###2026.07.05.9
 - Fixed "command not found" errors when running MEGAcmd commands from a terminal or SSH session.
 
-###2026.07.05h
+###2026.07.05.8
 - Improved field spacing and alignment on the settings page.
 - Long file paths now display more cleanly.
 
-###2026.07.05g
+###2026.07.05.7
 - Fixed remaining cases of the settings page scrolling horizontally.
 - Improved the styling of the displayed account email.
 
-###2026.07.05f
+###2026.07.05.6
 - Fixed a bug that could prevent the settings page from loading.
 
-###2026.07.05e
+###2026.07.05.5
 - Fixed the settings page scrolling horizontally on long file paths.
 - Fixed actions being repeated unintentionally when refreshing the settings page.
 
-###2026.07.05d
+###2026.07.05.4
 - Redesigned the settings page with clearer, separated sections and a dropdown for removing syncs.
 
-###2026.07.05c
+###2026.07.05.3
 - Local folder selection now uses Unraid's built-in folder browser.
 
-###2026.07.05b
+###2026.07.05.2
 - Added dropdown pickers for local shares and existing MEGA folders when adding a sync.
 
 ###2026.07.05
@@ -116,7 +135,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>54e760ebd9fabc32a5cf643fabbfa211</MD5>
+    <MD5>ae055948e7d27b7b279303eb721de326</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

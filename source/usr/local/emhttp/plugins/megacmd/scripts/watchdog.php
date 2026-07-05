@@ -18,6 +18,7 @@ $logPosFile = "$megaHome/.watchdog_logpos";
 
 if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !serviceRunning()) {
   exec("/etc/rc.d/rc.megacmd start >/dev/null 2>&1");
+  logWatchdog("Service was not running -- restarted automatically.");
   notify(
     "MEGAcmd service restarted",
     "mega-cmd-server was not running and has been restarted automatically.",
@@ -34,6 +35,7 @@ $loggedIn = stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 if ($loggedIn) {
   touch($loggedInMarker);
 } elseif (file_exists($loggedInMarker)) {
+  logWatchdog("Unexpectedly logged out.");
   notify(
     "MEGAcmd logged out",
     "MEGAcmd was logged in but is no longer -- syncs are paused until you log back in.",
@@ -54,6 +56,7 @@ foreach ($syncs as $s) {
   if ($s["error"] !== "" && strtoupper($s["error"]) !== "NO") {
     $currentErrors[] = $s["id"];
     if (!isset($prevErrors[$s["id"]])) {
+      logWatchdog("Sync error: {$s['local']} -> {$s['remote']}: {$s['error']}");
       notify(
         "MEGAcmd sync error",
         "Sync {$s['local']} -> {$s['remote']} reports: {$s['error']}",
@@ -76,6 +79,7 @@ if (file_exists($logFile)) {
   fclose($fh);
   file_put_contents($logPosFile, (string)$size);
   if (stripos($newContent, "Reached bandwidth quota") !== false) {
+    logWatchdog("MEGA bandwidth quota reached.");
     notify(
       "MEGA bandwidth quota reached",
       "A transfer could not proceed because MEGA's free bandwidth allowance for this IP has been reached. It will resume automatically once quota is available, or consider a paid plan for more bandwidth.",
