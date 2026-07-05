@@ -140,6 +140,35 @@ function megaListSyncs() {
   return $syncs;
 }
 
+// Parses `mega-backup` into a list of ['tag','local','remote','status'] for configured backups.
+// Unlike mega-sync/mega-transfers, mega-backup has no --col-separator option, so this slices
+// the fixed-width table by the column start offsets found in its own header row (robust against
+// spaces in local paths, unlike naive whitespace-splitting). --path-display-size=500 asks for
+// paths wide enough that they're never truncated with "..." in the middle.
+function megaListBackups() {
+  $r = megaExec("mega-backup --path-display-size=500");
+  $lines = explode("\n", $r["output"]);
+  $header = array_shift($lines);
+  $tagPos = strpos($header, "TAG");
+  $localPos = strpos($header, "LOCALPATH");
+  $remotePos = strpos($header, "REMOTEPARENTPATH");
+  $statusPos = strpos($header, "STATUS");
+  if ($tagPos === false || $localPos === false || $remotePos === false || $statusPos === false) return [];
+  $backups = [];
+  foreach ($lines as $line) {
+    if (trim($line) === "") continue;
+    $tag = trim(substr($line, $tagPos, $localPos - $tagPos));
+    if ($tag === "") continue;
+    $backups[] = [
+      "tag" => $tag,
+      "local" => trim(substr($line, $localPos, $remotePos - $localPos)),
+      "remote" => trim(substr($line, $remotePos, $statusPos - $remotePos)),
+      "status" => trim(substr($line, $statusPos)),
+    ];
+  }
+  return $backups;
+}
+
 // Same as megaListSyncs() but also includes the ERROR column (columns: ID LOCALPATH REMOTEPATH
 // RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors.
 function megaListSyncsWithError() {

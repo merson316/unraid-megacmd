@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05u">
+<!ENTITY version "2026.07.05v">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,14 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.05v
+- "Remove backup" is now a dropdown of configured backups (tag, local path, remote path),
+  matching "Remove sync", instead of a free-text field for the tag/path. mega-backup has no
+  --col-separator option like mega-sync/mega-transfers do, so the parser slices its fixed-width
+  table by the column offsets found in its own header row instead (robust against spaces in
+  local paths). Verified against a real throwaway backup created and removed during development
+  specifically to confirm the actual output format rather than guessing at it.
+
 ###2026.07.05u
 - Reworked the settings page layout based on feedback that the previous flat list of cards
   (with "Add sync" not mentioning backups at all) was confusing:
@@ -208,7 +216,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>31c289c72044548578f2ab16d4a5f603</MD5>
+    <MD5>fd1fe050d492e5c86935b627432c0a14</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

@@ -22,7 +22,8 @@ $syncHistory = $running && $loggedIn
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
-$backupList = $running && $loggedIn ? megaExec("mega-backup -l")["output"] : "";
+$backupList = $running && $loggedIn ? megaExec("mega-backup -l --path-display-size=200")["output"] : "";
+$backups = $running && $loggedIn ? megaListBackups() : [];
 
 $accountEmail = "";
 if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
@@ -275,11 +276,18 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <form class="megacmd-ajax-form" method="post">
     <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
     <input type="hidden" name="action" value="removebackup">
-    <div class="megacmd-field megacmd-narrow">
-      <label>Backup tag or local path</label>
-      <input type="text" name="backuptag" placeholder="e.g. /mnt/user/share/folder">
-    </div>
-    <button type="submit">Remove</button>
+    <? if ($backups): ?>
+      <div class="megacmd-field">
+        <select name="backuptag">
+          <? foreach ($backups as $b): ?>
+            <option value="<?= htmlspecialchars($b['tag']) ?>"><?= htmlspecialchars($b['local']) ?> &rarr; <?= htmlspecialchars($b['remote']) ?> (<?= htmlspecialchars($b['tag']) ?>)</option>
+          <? endforeach; ?>
+        </select>
+      </div>
+      <button type="submit" class="megacmd-stack-btn">Remove</button>
+    <? else: ?>
+      <p>No backups configured.</p>
+    <? endif; ?>
   </form>
   <blockquote class="inline_help">
     Stops a configured backup. Like removing a sync, this does not delete any backup snapshots
