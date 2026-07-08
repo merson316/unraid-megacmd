@@ -65,13 +65,23 @@ foreach ($syncs as $s) {
   if ($s["error"] !== "" && strtoupper($s["error"]) !== "NO") {
     $currentErrors[] = $s["id"];
     if (!isset($prevErrors[$s["id"]])) {
-      logWatchdog("Sync error: {$s['local']} -> {$s['remote']}: {$s['error']}");
-      notify(
-        "MEGAcmd sync error",
-        "Sync {$s['local']} -> {$s['remote']} reports: {$s['error']}",
-        "NOTIFY_SYNCERROR",
-        "warning"
-      );
+      if (stripos($s["error"], "FSID") !== false) {
+        logWatchdog("Sync disabled (FSID mismatch): {$s['local']} -> {$s['remote']}");
+        notify(
+          "MEGAcmd sync needs repair",
+          "Sync {$s['local']} -> {$s['remote']} was disabled after a filesystem-identity mismatch (often caused by an unclean reboot). Visit Settings > MEGAcmd to review and self-heal it once you've confirmed the local folder is intact.",
+          "NOTIFY_FSID",
+          "alert"
+        );
+      } else {
+        logWatchdog("Sync error: {$s['local']} -> {$s['remote']}: {$s['error']}");
+        notify(
+          "MEGAcmd sync error",
+          "Sync {$s['local']} -> {$s['remote']} reports: {$s['error']}",
+          "NOTIFY_SYNCERROR",
+          "warning"
+        );
+      }
     }
   }
 }

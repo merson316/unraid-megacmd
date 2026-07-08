@@ -73,6 +73,10 @@ switch ($action) {
       $message = $r["output"];
     }
     break;
+  case 'selfhealsync':
+    $syncId = trim($_POST['syncid'] ?? '');
+    $message = $syncId !== '' ? selfHealSyncFsid($syncId) : "No sync selected.";
+    break;
   case 'savesettings':
     $watchdogInterval = $_POST['watchdog_interval'] ?? '5';
     if (!in_array($watchdogInterval, ['1', '5', '10', '15', '30', '60'], true)) $watchdogInterval = '5';
@@ -86,6 +90,7 @@ switch ($action) {
       "NOTIFY_RESTART" => ($_POST['notify_restart'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_LOGOUT" => ($_POST['notify_logout'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_SYNCERROR" => ($_POST['notify_syncerror'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_FSID" => ($_POST['notify_fsid'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_QUOTA" => ($_POST['notify_quota'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_UPDATE" => ($_POST['notify_update'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG" => ($_POST['watchdog'] ?? '') === 'yes' ? 'yes' : 'no',

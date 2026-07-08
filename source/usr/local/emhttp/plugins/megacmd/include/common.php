@@ -46,6 +46,7 @@ $cfgDefaults = [
   "NOTIFY_RESTART" => "yes",
   "NOTIFY_LOGOUT" => "yes",
   "NOTIFY_SYNCERROR" => "yes",
+  "NOTIFY_FSID" => "yes",
   "NOTIFY_QUOTA" => "yes",
   "NOTIFY_UPDATE" => "yes",
   "WATCHDOG" => "yes",
@@ -303,9 +304,11 @@ function megaListBackups() {
 }
 
 // Same as megaListSyncs() but also includes the ERROR column (columns: ID LOCALPATH REMOTEPATH
-// RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors.
+// RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors, and
+// by the self-heal feature below, which needs the full untruncated path to re-add a sync
+// correctly (hence --path-display-size, same reasoning as megaListBackups() above).
 function megaListSyncsWithError() {
-  $r = megaExec('mega-sync --col-separator="|"');
+  $r = megaExec('mega-sync --col-separator="|" --path-display-size=500');
   $lines = explode("\n", trim($r["output"]));
   array_shift($lines); // header row
   $syncs = [];
@@ -316,4 +319,36 @@ function megaListSyncsWithError() {
     $syncs[] = ["id" => $cols[0], "local" => $cols[1], "remote" => $cols[2], "error" => trim($cols[5])];
   }
   return $syncs;
+}
+
+// Syncs currently disabled by MEGAcmd's "Mismatch on sync root FSID" safety check (it refuses to
+// keep syncing if the local root's underlying filesystem identity changes, e.g. after an unclean
+// reboot -- see the self-heal note on selfHealSyncFsid() below). Used to show the self-heal
+// button only when it's actually relevant, never unconditionally.
+function megaListSyncsWithFsidMismatch() {
+  $syncs = [];
+  foreach (megaListSyncsWithError() as $s) {
+    if (stripos($s["error"], "FSID") !== false) $syncs[] = $s;
+  }
+  return $syncs;
+}
+
+// Self-heals a sync stuck in the FSID-mismatch state. Confirmed empirically that simply
+// re-enabling it (`mega-sync -e`) does NOT clear this -- it fails again with the exact same
+// error, even though MEGAcmd's own docs describe a "Disabled" sync as having no cached state.
+// The only fix found is to remove the sync's tracked configuration (files are untouched by this)
+// and re-add it fresh, which makes MEGAcmd record a new filesystem-identity baseline and
+// re-compare local vs remote from scratch. Deliberately never called automatically by the
+// watchdog -- only from an explicit user action, since re-adding is a real (if normally harmless)
+// reconciliation pass and the user should decide whether the local folder is actually trustworthy
+// first.
+function selfHealSyncFsid($syncId) {
+  $target = null;
+  foreach (megaListSyncsWithError() as $s) {
+    if ($s["id"] === $syncId) { $target = $s; break; }
+  }
+  if ($target === null) return "Sync not found -- it may have already been removed or changed.";
+  $del = megaExec("mega-sync -d " . escapeshellarg($syncId));
+  $add = megaExec("mega-sync " . escapeshellarg($target["local"]) . " " . escapeshellarg($target["remote"]));
+  return trim($del["output"] . "\n" . $add["output"]);
 }

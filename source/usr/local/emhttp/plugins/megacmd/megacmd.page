@@ -22,6 +22,7 @@ $syncHistory = $running && $loggedIn
   ? fixTransferTypeAlignment(megaExec("mega-transfers --show-completed --show-syncs --limit=50 --path-display-size=200")["output"])
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
+$fsidSyncs = $running && $loggedIn ? megaListSyncsWithFsidMismatch() : [];
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 $backupList = $running && $loggedIn ? megaExec("mega-backup -l --path-display-size=200")["output"] : "";
 $backups = $running && $loggedIn ? megaListBackups() : [];
@@ -95,7 +96,7 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 .megacmd-hint { display: block; color: #888; font-size: 0.85em; margin-top: 4px; }
 .megacmd-intro { margin: 0 0 12px; color: #aaa; }
 .megacmd-warning {
-  margin: 0 0 20px;
+  margin: 14px 0 20px;
   padding: 10px 14px;
   background: rgba(200,150,0,0.1);
   border: 1px solid rgba(200,150,0,0.35);
@@ -139,13 +140,37 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       <button type="button" onclick="megacmdViewLogs()">View recent logs</button>
       <button type="button" onclick="window.location.href='/plugins/megacmd/include/download-logs.php'">Download logs</button>
     </div>
+    <? if ($fsidSyncs): ?>
+      <p class="megacmd-warning">
+        <strong><?= count($fsidSyncs) ?> sync<?= count($fsidSyncs) === 1 ? '' : 's' ?> disabled after a filesystem-identity mismatch</strong>
+        (often caused by an unclean reboot, where the local folder was briefly replaced by
+        something else before coming back). Self-healing removes the affected sync's tracked
+        configuration -- your files are not touched -- and re-adds it fresh, which re-compares
+        every file between the local folder and MEGA from scratch. This is safe if the local
+        folder's real contents are intact; if you're not sure why this happened, check the local
+        folder yourself before self-healing.
+      </p>
+      <form class="megacmd-ajax-form" method="post">
+        <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+        <input type="hidden" name="action" value="selfhealsync">
+        <div class="megacmd-field">
+          <select name="syncid">
+            <? foreach ($fsidSyncs as $s): ?>
+              <option value="<?= htmlspecialchars($s['id']) ?>"><?= htmlspecialchars($s['local']) ?> &rarr; <?= htmlspecialchars($s['remote']) ?></option>
+            <? endforeach; ?>
+          </select>
+        </div>
+        <button type="submit" class="megacmd-stack-btn">Self-heal this sync</button>
+      </form>
+    <? endif; ?>
   <? endif; ?>
   <blockquote class="inline_help">
     This runs the background process that actually performs your syncs and backups -- it needs
     to be Running before anything else on this page will work. Stop only pauses it (your syncs
     and backups stay configured and will resume once started again); Restart is useful if
     something seems stuck. "View recent logs" and "Download logs" show recent activity, which
-    is useful for troubleshooting.
+    is useful for troubleshooting. If a sync was disabled due to a filesystem-identity mismatch, a
+    self-heal option appears here explaining what happened and what fixing it will do.
   </blockquote>
 </div>
 
@@ -395,6 +420,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         MEGAcmd is unexpectedly logged out</label>
       <label><input type="checkbox" name="notify_syncerror" value="yes" <?= $cfg['NOTIFY_SYNCERROR'] === 'yes' ? 'checked' : '' ?>>
         A sync reports an error</label>
+      <label><input type="checkbox" name="notify_fsid" value="yes" <?= $cfg['NOTIFY_FSID'] === 'yes' ? 'checked' : '' ?>>
+        A sync is disabled due to a filesystem-identity mismatch</label>
       <label><input type="checkbox" name="notify_quota" value="yes" <?= $cfg['NOTIFY_QUOTA'] === 'yes' ? 'checked' : '' ?>>
         MEGA's bandwidth quota is reached</label>
       <label><input type="checkbox" name="notify_update" value="yes" <?= $cfg['NOTIFY_UPDATE'] === 'yes' ? 'checked' : '' ?>>
