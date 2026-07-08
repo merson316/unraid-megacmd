@@ -13,6 +13,11 @@ MEGACMD_BIN="/opt/megacmd/bin"
 MEGACMD_LIB="/opt/megacmd/lib"
 PIDFILE="/var/run/megacmd.pid"
 LOGFILE="$MEGACMD_HOME/server.log"
+# Set by stop() whenever the service is stopped deliberately (shutdown, or a manual Stop from
+# the settings page) so the watchdog cron knows NOT to fight that and restart it mid-shutdown.
+# Cleared by start() since starting means we do want it running again. Lives on tmpfs
+# (/var/run), so it can't outlive a reboot and accidentally suppress the watchdog forever.
+STOPPED_MARKER="/var/run/megacmd.stopped"
 # Run the server as nobody:users (Unraid's standard share owner) instead of root -- rc.d
 # scripts run as root, and mega-cmd-server otherwise creates every downloaded/synced file
 # (and its own .debris/.megaignore housekeeping files) as root, breaking read/write access
@@ -29,16 +34,21 @@ is_running() {
 }
 
 start() {
+  rm -f "$STOPPED_MARKER"
   if is_running; then
     echo "mega-cmd-server already running (pid $(cat "$PIDFILE"))"
     return 0
   fi
   # The appdata root itself (e.g. .../appdata) doesn't need to exist yet -- that's normal and
-  # gets created below -- but its PARENT must already be there, otherwise the array/pool
-  # backing it simply isn't started yet.
+  # gets created below -- but its PARENT must be a genuine mount already, otherwise the
+  # array/pool backing it simply isn't started yet. A plain directory-exists check isn't
+  # enough: /mnt/user (and similar mountpoint stubs) exist on disk from early boot regardless
+  # of whether the array or user shares have actually mounted onto them yet -- writing here
+  # before that happens creates real files directly on the pre-mount stub, which can block
+  # Unraid's own user-share mount from ever completing.
   APPDATA_PARENT="$(dirname "$APPDATA_ROOT")"
-  if [ ! -d "$APPDATA_PARENT" ] && ! { [ "$APPDATA_PARENT" = "/mnt/user" ] && [ -d /mnt/user0 ]; }; then
-    echo "Cannot start: $APPDATA_PARENT is not available yet -- is the array started?"
+  if ! mountpoint -q "$APPDATA_PARENT" 2>/dev/null && ! { [ "$APPDATA_PARENT" = "/mnt/user" ] && mountpoint -q /mnt/user0 2>/dev/null; }; then
+    echo "Cannot start: $APPDATA_PARENT is not mounted yet -- is the array started?"
     return 1
   fi
   mkdir -p "$MEGACMD_HOME"
@@ -55,6 +65,7 @@ start() {
 }
 
 stop() {
+  touch "$STOPPED_MARKER"
   if [ -f "$PIDFILE" ]; then
     PID="$(cat "$PIDFILE" 2>/dev/null)"
     if kill -0 "$PID" 2>/dev/null; then

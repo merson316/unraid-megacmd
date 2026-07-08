@@ -16,7 +16,12 @@ $loggedInMarker = "$megaHome/.watchdog_loggedin";
 $syncErrorsFile = "$megaHome/.watchdog_sync_errors";
 $logPosFile = "$megaHome/.watchdog_logpos";
 
-if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !serviceRunning()) {
+// A stop() (shutdown's stopping_svcs, or a manual Stop from the settings page) touches this
+// marker -- if it's present, the service being down is intentional, not a crash, so don't
+// fight it. This matters most during a reboot/shutdown: crond keeps ticking independently of
+// the array stopping, and without this check a watchdog run landing mid-shutdown would restart
+// the service right as Unraid is trying to unmount shares, stalling the reboot.
+if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !file_exists("/var/run/megacmd.stopped") && !serviceRunning()) {
   exec("/etc/rc.d/rc.megacmd start >/dev/null 2>&1");
   logWatchdog("Service was not running -- restarted automatically.");
   notify(

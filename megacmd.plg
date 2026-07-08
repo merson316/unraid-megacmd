@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.07.05.31">
+<!ENTITY version "2026.07.09">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,14 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.07.09
+- Fixed a boot-time race that could create plugin folders before array storage and user
+  shares were ready, which could leave shares incomplete after a reboot.
+- The service no longer refuses to shut down cleanly, which could previously stall or force
+  a reboot.
+- The automatic service-recovery feature no longer restarts the service while Unraid is
+  shutting it down intentionally.
+
 ###2026.07.05.31
 - Newly created files and folders now default to Unraid's own "docker safe" permissions
   (666 / 777) instead of MEGAcmd's own more restrictive defaults, so synced content is
@@ -149,7 +157,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>e9ed2599f99e98279c2c0edb9409821f</MD5>
+    <MD5>f258c4a60776b43bbade9f8a5b48cef6</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -172,7 +180,6 @@ rm -f /tmp/megacmd-fetch.sh
 APPDATA_ROOT="$(grep -oP '(?&lt;=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2&gt;/dev/null)"
 APPDATA_ROOT="${APPDATA_ROOT%/}"
 [ -z "$APPDATA_ROOT" ] &amp;&amp; APPDATA_ROOT="/mnt/user/appdata"
-mkdir -p "$APPDATA_ROOT/megacmd/home" 2&gt;/dev/null
 chmod +x /etc/rc.d/rc.megacmd &plugdir;/event/disks_mounted &plugdir;/event/stopping_svcs &plugdir;/megacmd-wrapper.sh &plugdir;/scripts/watchdog.php &plugdir;/scripts/check-update-notify.php 2&gt;/dev/null
 for f in /opt/megacmd/bin/mega-*; do
   ln -sf &plugdir;/megacmd-wrapper.sh "/usr/local/bin/$(basename "$f")"
@@ -206,9 +213,10 @@ cat &gt; /boot/config/plugins/&name;/megacmd.cron &lt;&lt;'CRONEOF'
 CRONEOF
 /usr/local/sbin/update_cron
 
-if mountpoint -q /mnt/user 2&gt;/dev/null || [ -d /mnt/user0 ]; then
-  &plugdir;/event/disks_mounted
-fi
+# Safe to call unconditionally on every (re)install -- rc.megacmd itself now refuses to
+# start until the resolved appdata parent is a genuine mount, not just a directory that
+# exists (which is true from early boot regardless of whether the array/shares are up).
+&plugdir;/event/disks_mounted
 echo ""
 echo "----------------------------------------------------"
 echo " MEGAcmd &megacmd_version; installed."

@@ -12,15 +12,24 @@ function getAppdataRoot() {
   return "/mnt/user/appdata";
 }
 
+function isMountpoint($path) {
+  exec("mountpoint -q " . escapeshellarg($path) . " 2>/dev/null", $o, $ret);
+  return $ret === 0;
+}
+
 // Whether the resolved appdata root's underlying storage is actually available yet (array/pool
 // started). Deliberately checks the PARENT of the appdata root, not the root itself -- an
 // "appdata" share that doesn't exist yet is normal and will be created on demand (same as any
-// other plugin or Docker container), but a missing parent means the array/pool isn't up at all.
+// other plugin or Docker container), but a parent that isn't a genuine mount means the
+// array/pool isn't up at all. A plain is_dir() check isn't enough: mountpoint stubs like
+// /mnt/user exist on disk from early boot regardless of whether anything is actually mounted
+// there yet -- treating that as "ready" lets writes land directly on the pre-mount stub,
+// which can block Unraid's own user-share mount from ever completing.
 function appdataStorageReady() {
   $root = getAppdataRoot();
   $parent = dirname($root);
-  if (is_dir($parent)) return true;
-  if ($parent === "/mnt/user" && is_dir("/mnt/user0")) return true;
+  if (isMountpoint($parent)) return true;
+  if ($parent === "/mnt/user" && isMountpoint("/mnt/user0")) return true;
   return false;
 }
 
