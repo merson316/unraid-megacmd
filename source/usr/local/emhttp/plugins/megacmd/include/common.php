@@ -303,6 +303,24 @@ function megaListBackups() {
   return $backups;
 }
 
+// Parses `mega-df` for the account's overall storage usage (used by the Dashboard tile). Returns
+// null if the figures aren't present (e.g. not logged in, or MEGA changes this output format).
+function megaGetAccountStorage() {
+  $r = megaExec("mega-df");
+  if (!preg_match('/USED STORAGE:\s*(\d+)\s+([\d.]+)% of (\d+)/', $r["output"], $m)) return null;
+  return ["usedBytes" => (int)$m[1], "percent" => (float)$m[2], "totalBytes" => (int)$m[3]];
+}
+
+// Short human-readable byte size (e.g. "27.4 GB") for compact dashboard-tile display -- distinct
+// from mega-df's own "-h" output since we need the raw numbers for the percent calc anyway.
+function formatBytesShort($bytes) {
+  $units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  $i = 0;
+  $val = (float)$bytes;
+  while ($val >= 1024 && $i < count($units) - 1) { $val /= 1024; $i++; }
+  return round($val, $val < 10 ? 1 : 0) . " " . $units[$i];
+}
+
 // Same as megaListSyncs() but also includes the ERROR column (columns: ID LOCALPATH REMOTEPATH
 // RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors, and
 // by the self-heal feature below, which needs the full untruncated path to re-add a sync

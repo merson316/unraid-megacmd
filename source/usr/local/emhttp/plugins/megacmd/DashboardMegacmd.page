@@ -10,6 +10,11 @@ $running = serviceRunning();
 $whoami = $running ? megaExec("mega-whoami")["output"] : "";
 $loggedIn = $running && stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 $syncCount = $loggedIn ? count(megaListSyncs()) : 0;
+$backupCount = $loggedIn ? count(megaListBackups()) : 0;
+$errorCount = $loggedIn ? count(array_filter(megaListSyncsWithError(), function ($s) {
+  return $s["error"] !== "" && strtoupper($s["error"]) !== "NO";
+})) : 0;
+$storage = $loggedIn ? megaGetAccountStorage() : null;
 $version = getPlgEntity('megacmd_version');
 
 $statusText = !$running ? _('Stopped') : ($loggedIn ? _('Logged in') : _('Not logged in'));
@@ -18,8 +23,37 @@ $statusColor = !$running ? '#a44' : ($loggedIn ? '#4a4' : '#a84');
 $title = _('MEGAcmd');
 $desc = _('MEGAcmd cloud sync status');
 $labelStatus = _('Status');
+$labelStorage = _('Cloud storage');
 $labelSyncs = _('Active syncs');
+$labelBackups = _('Active backups');
 $labelVersion = _('Version');
+$labelAttention = _('Needs attention');
+$subtitle = "$labelVersion $version";
+
+$storageRow = "";
+if ($storage !== null) {
+  $pct = $storage['percent'];
+  $barColor = $pct >= 90 ? '#a44' : ($pct >= 75 ? '#c90' : '#4a4');
+  $used = formatBytesShort($storage['usedBytes']);
+  $total = formatBytesShort($storage['totalBytes']);
+  $storageRow = <<<EOT
+<tr><td>
+<span class="w44"><i class="fa fa-fw fa-cloud"></i> $labelStorage</span>
+<span class="w44">$used / $total ({$pct}%)<div class="usage-disk sys"><span style="width:{$pct}%;background-color:$barColor;"></span><span></span></div></span>
+</td></tr>
+EOT;
+}
+
+$attentionRow = "";
+if ($errorCount > 0) {
+  $plural = $errorCount === 1 ? '' : 's';
+  $attentionRow = <<<EOT
+<tr><td>
+<span class="w44" style="color:#c90"><i class="fa fa-fw fa-exclamation-triangle"></i> $labelAttention</span>
+<span class="w44" style="color:#c90">$errorCount sync$plural</span>
+</td></tr>
+EOT;
+}
 
 $mytiles[$pluginname]['column1'] =
 <<<EOT
@@ -27,7 +61,13 @@ $mytiles[$pluginname]['column1'] =
 <tr>
 <td>
 <span class='tile-header'>
-<span class='tile-header-left'>$title</span>
+<span class='tile-header-left'>
+<img src="/plugins/megacmd/images/icon.png" style="width:32px;height:32px;">
+<div class='section'>
+<h3 class='tile-header-main'>$title</h3>
+<span>$subtitle</span><br>
+</div>
+</span>
 <span class='tile-header-right'>
 <span class='tile-header-right-controls'>
 <a href="/Settings/megacmd" title="_(Go to MEGAcmd settings)_">
@@ -39,13 +79,19 @@ $mytiles[$pluginname]['column1'] =
 </td>
 </tr>
 <tr><td>
-<span class="w44">$labelStatus</span>
-<span class="w44" style="color:$statusColor">$statusText</span><br>
-<span class="w44">$labelSyncs</span>
-<span class="w44">$syncCount</span><br>
-<span class="w44">$labelVersion</span>
-<span class="w44">$version</span>
+<span class="w44"><i class="fa fa-fw fa-plug"></i> $labelStatus</span>
+<span class="w44" style="color:$statusColor">$statusText</span>
 </td></tr>
+$storageRow
+<tr><td>
+<span class="w44"><i class="fa fa-fw fa-refresh"></i> $labelSyncs</span>
+<span class="w44">$syncCount</span>
+</td></tr>
+<tr><td>
+<span class="w44"><i class="fa fa-fw fa-archive"></i> $labelBackups</span>
+<span class="w44">$backupCount</span>
+</td></tr>
+$attentionRow
 </tbody>
 EOT;
 ?>
