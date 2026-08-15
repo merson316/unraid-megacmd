@@ -41,6 +41,9 @@ if ($loggedIn) {
   // Cheap and idempotent -- keeps Unraid's docker-safe permissions in place even if a logout/
   // login cycle (or an upgrade over an already-logged-in install) reset MEGAcmd's own defaults.
   applyPermissions();
+  // Also cheap and idempotent -- protects every sync root's physical disk copies from mover's
+  // deletion-then-recreation cleanup, including any new copy mover created since the last tick.
+  protectAllSyncRootsFromMoverCleanup();
   touch($loggedInMarker);
 } elseif (file_exists($loggedInMarker)) {
   logWatchdog("Unexpectedly logged out.");
@@ -69,7 +72,7 @@ foreach ($syncs as $s) {
         logWatchdog("Sync disabled (FSID mismatch): {$s['local']} -> {$s['remote']}");
         notify(
           "MEGAcmd sync needs repair",
-          "Sync {$s['local']} -> {$s['remote']} was disabled after a filesystem-identity mismatch (often caused by an unclean reboot). Visit Settings > MEGAcmd to review and self-heal it once you've confirmed the local folder is intact.",
+          "Sync {$s['local']} -> {$s['remote']} was disabled after a filesystem-identity mismatch (this can happen after an unclean reboot, or when Unraid's mover relocates the sync folder between the cache pool and the array). Visit Settings > MEGAcmd to review and self-heal it once you've confirmed the local folder is intact.",
           "NOTIFY_FSID",
           "alert"
         );

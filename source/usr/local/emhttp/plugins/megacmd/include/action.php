@@ -54,6 +54,10 @@ switch ($action) {
           " --period=" . escapeshellarg($period) . " --num-backups=" . $numBackups
         );
       } else {
+        // Guards against Unraid's mover deleting/recreating this folder once emptied, which
+        // would otherwise disable the sync later with a filesystem-identity mismatch. Not
+        // relevant for backups above -- that's a mega-sync-specific failure mode.
+        protectSyncRootFromMoverCleanup($local);
         $r = megaExec("mega-sync " . escapeshellarg($local) . " " . escapeshellarg($remote));
       }
       $message = $r["output"];

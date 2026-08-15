@@ -143,8 +143,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <? if ($fsidSyncs): ?>
       <p class="megacmd-warning">
         <strong><?= count($fsidSyncs) ?> sync<?= count($fsidSyncs) === 1 ? '' : 's' ?> disabled after a filesystem-identity mismatch</strong>
-        (often caused by an unclean reboot, where the local folder was briefly replaced by
-        something else before coming back). Self-healing removes the affected sync's tracked
+        (this can happen after an unclean reboot, or when Unraid's mover relocates the sync
+        folder between the cache pool and the array). Self-healing removes the affected sync's tracked
         configuration -- your files are not touched -- and re-adds it fresh, which re-compares
         every file between the local folder and MEGA from scratch. This is safe if the local
         folder's real contents are intact; if you're not sure why this happened, check the local
@@ -429,13 +429,18 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     </div>
     <div class="megacmd-field">
       <label><input type="checkbox" name="watchdog" value="yes" <?= $cfg['WATCHDOG'] === 'yes' ? 'checked' : '' ?>>
-        Automatically restart the service if it crashes, checking every
+        Automatically restart the service if it crashes</label>
+      <label>Watchdog check interval:
         <select name="watchdog_interval" class="megacmd-inline">
           <? foreach ([1, 5, 10, 15, 30, 60] as $m): ?>
           <option value="<?=$m?>" <?= (int)$cfg['WATCHDOG_INTERVAL'] === $m ? 'selected' : '' ?>><?=$m?> minute<?=$m === 1 ? '' : 's'?></option>
           <? endforeach ?>
         </select>
       </label>
+      <small class="megacmd-hint">Besides restarting a crashed service, the watchdog also reapplies
+        file/folder permissions, protects sync folders from being disrupted by Unraid's mover, and
+        watches for sync or login problems -- all at this same interval regardless of the checkbox
+        above. A shorter interval catches problems (and protects sync folders) sooner.</small>
     </div>
     <div class="megacmd-field">
       <label class="megacmd-group-label">Permissions for newly created files/folders</label>
@@ -467,11 +472,12 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <blockquote class="inline_help">
     Optional behavior for this plugin. Notifications use Unraid's own notification system
     (bell icon / optional email) and can be turned on or off individually for each type of
-    event. The watchdog automatically restarts the background service if it ever crashes,
-    checking on the interval you choose here. Permissions control what MEGAcmd sets on newly
-    created files and folders. Speed limits cap how much of your internet connection MEGAcmd
-    is allowed to use, so a big sync or backup doesn't slow down everything else on your
-    network.
+    event. The watchdog checks in on the interval you choose here -- restarting the background
+    service if it crashes (when that's enabled), reapplying file/folder permissions, watching
+    for sync or login problems, and protecting sync folders from being disrupted by Unraid's
+    mover. Permissions control what MEGAcmd sets on newly created files and folders. Speed
+    limits cap how much of your internet connection MEGAcmd is allowed to use, so a big sync or
+    backup doesn't slow down everything else on your network.
   </blockquote>
 </div>
 

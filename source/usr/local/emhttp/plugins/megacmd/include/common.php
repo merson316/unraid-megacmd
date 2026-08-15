@@ -224,6 +224,44 @@ function applySpeedlimit() {
   if ($down !== "") megaExec("mega-speedlimit -d " . escapeshellarg($down));
 }
 
+// Unraid's mover deletes a folder once every file inside it has been relocated elsewhere (e.g.
+// cache filling past its threshold), then silently recreates it wherever the next file happens
+// to land -- which changes the underlying filesystem identity a sync root is pinned to, and
+// disables the sync with "Mismatch on sync root FSID" even though nothing is actually wrong.
+// The Mover Tuning plugin has its own documented convention for opting a folder out of just this
+// cleanup step: a file named exactly ".placeholder" makes it treat the folder as never-empty,
+// while every real file inside still gets moved normally -- filesystem-agnostic (unlike a ZFS
+// dataset mountpoint, mover's other, narrower exemption). Harmless if mover/Mover Tuning isn't
+// in use, or the share was never going to be touched by it anyway.
+function protectSyncRootFromMoverCleanup($localPath) {
+  $localPath = rtrim($localPath, '/');
+  if ($localPath !== '' && is_dir($localPath)) {
+    @touch("$localPath/.placeholder");
+  }
+}
+
+// A sync root can end up split across several physical disks over time -- the array allocator
+// picks a disk per file as mover relocates things -- and each physical copy needs its own
+// .placeholder, since one created fresh by mover moving a file onto a disk that's never held
+// this folder before wouldn't have one, leaving it just as vulnerable to the same deletion-
+// then-recreation cycle. Called from the watchdog on every tick so a newly-created copy gets
+// protected within one cycle, comfortably ahead of mover's next (typically daily) pass.
+function protectAllSyncRootsFromMoverCleanup() {
+  $excluded = ["user", "user0", "disks", "remotes", "rootshare", "addons"];
+  $mounts = glob("/mnt/*", GLOB_ONLYDIR) ?: [];
+  foreach (megaListSyncs() as $s) {
+    $local = rtrim($s["local"], "/");
+    if (strpos($local, "/mnt/user/") !== 0) continue; // not a user-share path, nothing to do
+    $relative = substr($local, strlen("/mnt/user/"));
+    if ($relative === "") continue;
+    foreach ($mounts as $mount) {
+      if (in_array(basename($mount), $excluded, true)) continue;
+      $candidate = "$mount/$relative";
+      if (is_dir($candidate)) @touch("$candidate/.placeholder");
+    }
+  }
+}
+
 // MEGAcmd's own defaults for newly created files/folders (600/700) are far more restrictive
 // than Unraid's "New Permissions" convention (777 for folders, 666 for files) that every share
 // and Docker container on Unraid is expected to follow, so synced-down content would otherwise
@@ -367,6 +405,9 @@ function selfHealSyncFsid($syncId) {
   }
   if ($target === null) return "Sync not found -- it may have already been removed or changed.";
   $del = megaExec("mega-sync -d " . escapeshellarg($syncId));
+  // Without this, a sync re-added by self-heal is just as exposed to the same mover-driven
+  // cleanup that likely caused the mismatch in the first place -- see the function's own note.
+  protectSyncRootFromMoverCleanup($target["local"]);
   $add = megaExec("mega-sync " . escapeshellarg($target["local"]) . " " . escapeshellarg($target["remote"]));
   return trim($del["output"] . "\n" . $add["output"]);
 }
