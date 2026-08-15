@@ -1,7 +1,7 @@
 #!/bin/bash
 # Downloads MEGAcmd's official prebuilt amd64 package straight from MEGA's own
 # repo and installs its binaries + private libs under /opt/megacmd. No compiling,
-# no vendoring MEGA's binaries in our own git repo -- always pulled fresh from
+# no vendoring MEGA's binaries in our own git repo. Always pulled fresh from
 # upstream, pinned to a specific MEGAcmd release.
 #
 # Usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix>

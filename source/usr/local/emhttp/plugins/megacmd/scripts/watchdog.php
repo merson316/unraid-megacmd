@@ -1,12 +1,12 @@
 #!/usr/bin/php -q
 <?php
 // Runs every 5 minutes via cron (see megacmd.plg's cron install step). Restarts a crashed
-// service (if enabled) and surfaces problems -- unexpected logout, sync errors, MEGA bandwidth
-// quota -- as Unraid notifications (if enabled), instead of requiring someone to check the
+// service (if enabled) and surfaces problems (unexpected logout, sync errors, MEGA bandwidth
+// quota) as Unraid notifications (if enabled), instead of requiring someone to check the
 // settings page manually.
 require_once "/usr/local/emhttp/plugins/megacmd/include/common.php";
 
-// Only act once the array is actually up -- avoids noisy failed-start attempts while the
+// Only act once the array is actually up, to avoid noisy failed-start attempts while the
 // array is intentionally stopped.
 exec("mountpoint -q /mnt/user 2>/dev/null", $o, $ret);
 if ($ret !== 0 && !is_dir("/mnt/user0")) exit(0);
@@ -17,16 +17,16 @@ $syncErrorsFile = "$megaHome/.watchdog_sync_errors";
 $logPosFile = "$megaHome/.watchdog_logpos";
 
 // A stop() (shutdown's stopping_svcs, or a manual Stop from the settings page) touches this
-// marker -- if it's present, the service being down is intentional, not a crash, so don't
+// marker. If it's present, the service being down is intentional, not a crash, so don't
 // fight it. This matters most during a reboot/shutdown: crond keeps ticking independently of
 // the array stopping, and without this check a watchdog run landing mid-shutdown would restart
 // the service right as Unraid is trying to unmount shares, stalling the reboot.
 if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !file_exists("/var/run/megacmd.stopped") && !serviceRunning()) {
   exec("/etc/rc.d/rc.megacmd start >/dev/null 2>&1");
-  logWatchdog("Service was not running -- restarted automatically.");
+  logWatchdog("Service was not running, restarted automatically.");
   notify(
     "MEGAcmd service restarted",
-    "mega-cmd-server was not running and has been restarted automatically.",
+    "mega-cmd-server was not running. MEGAcmd restarted it automatically.",
     "NOTIFY_RESTART",
     "warning"
   );
@@ -38,10 +38,10 @@ $whoami = megaExec("mega-whoami")["output"];
 $loggedIn = stripos($whoami, "not logged in") === false && trim($whoami) !== "";
 
 if ($loggedIn) {
-  // Cheap and idempotent -- keeps Unraid's docker-safe permissions in place even if a logout/
+  // Cheap and idempotent: keeps Unraid's docker-safe permissions in place even if a logout/
   // login cycle (or an upgrade over an already-logged-in install) reset MEGAcmd's own defaults.
   applyPermissions();
-  // Also cheap and idempotent -- protects every sync root's physical disk copies from mover's
+  // Also cheap and idempotent: protects every sync root's physical disk copies from mover's
   // deletion-then-recreation cleanup, including any new copy mover created since the last tick.
   protectAllSyncRootsFromMoverCleanup();
   touch($loggedInMarker);
@@ -49,7 +49,7 @@ if ($loggedIn) {
   logWatchdog("Unexpectedly logged out.");
   notify(
     "MEGAcmd logged out",
-    "MEGAcmd was logged in but is no longer -- syncs are paused until you log back in.",
+    "MEGAcmd logged out unexpectedly. Your syncs stay paused until you log in again.",
     "NOTIFY_LOGOUT",
     "alert"
   );
@@ -72,7 +72,7 @@ foreach ($syncs as $s) {
         logWatchdog("Sync disabled (FSID mismatch): {$s['local']} -> {$s['remote']}");
         notify(
           "MEGAcmd sync needs repair",
-          "Sync {$s['local']} -> {$s['remote']} was disabled after a filesystem-identity mismatch (this can happen after an unclean reboot, or when Unraid's mover relocates the sync folder between the cache pool and the array). Visit Settings > MEGAcmd to review and self-heal it once you've confirmed the local folder is intact.",
+          "Sync {$s['local']} -> {$s['remote']} is disabled by a filesystem-identity mismatch. This can happen after an unclean reboot, or when Unraid's mover moves the sync folder between the cache pool and the array. Go to Settings > MEGAcmd to review it. Check the local folder, then self-heal the sync.",
           "NOTIFY_FSID",
           "alert"
         );
@@ -105,7 +105,7 @@ if (file_exists($logFile)) {
     logWatchdog("MEGA bandwidth quota reached.");
     notify(
       "MEGA bandwidth quota reached",
-      "A transfer could not proceed because MEGA's free bandwidth allowance for this IP has been reached. It will resume automatically once quota is available, or consider a paid plan for more bandwidth.",
+      "A transfer stopped because this IP reached MEGA's free bandwidth allowance. It resumes automatically when quota is available again. For more bandwidth, MEGA also offers a paid plan.",
       "NOTIFY_QUOTA",
       "warning"
     );

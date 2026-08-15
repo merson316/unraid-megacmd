@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds the plugin-logic package (rc.d script, webGUI page, event hooks) into a
-# Slackware-style .txz. Does NOT bundle MEGAcmd's own binaries -- those are fetched
+# Slackware-style .txz. Does NOT bundle MEGAcmd's own binaries; those are fetched
 # fresh from MEGA's official repo at plugin install time (see megacmd.plg).
 set -euo pipefail
 

@@ -1,6 +1,6 @@
 <?php
 // Unraid's own Docker settings (Settings > Docker > "Default appdata storage location") control
-// where appdata actually lives -- it's user-configurable and not necessarily /mnt/user/appdata
+// where appdata actually lives, and it's user-configurable and not necessarily /mnt/user/appdata
 // (e.g. a direct pool path like /mnt/apps/appdata, bypassing the /mnt/user FUSE layer entirely
 // for performance). Respect that setting instead of assuming the default, falling back to it
 // only if the setting is missing or unreadable.
@@ -18,12 +18,12 @@ function isMountpoint($path) {
 }
 
 // Whether the resolved appdata root's underlying storage is actually available yet (array/pool
-// started). Deliberately checks the PARENT of the appdata root, not the root itself -- an
+// started). Deliberately checks the PARENT of the appdata root, not the root itself: an
 // "appdata" share that doesn't exist yet is normal and will be created on demand (same as any
 // other plugin or Docker container), but a parent that isn't a genuine mount means the
 // array/pool isn't up at all. A plain is_dir() check isn't enough: mountpoint stubs like
 // /mnt/user exist on disk from early boot regardless of whether anything is actually mounted
-// there yet -- treating that as "ready" lets writes land directly on the pre-mount stub,
+// there yet, and treating that as "ready" lets writes land directly on the pre-mount stub,
 // which can block Unraid's own user-share mount from ever completing.
 function appdataStorageReady() {
   $root = getAppdataRoot();
@@ -35,7 +35,7 @@ function appdataStorageReady() {
 
 $megaHome = getAppdataRoot() . "/megacmd/home";
 $rc = "/etc/rc.d/rc.megacmd";
-// The locally-installed copy of our own .plg -- this is what Unraid actually re-reads and
+// The locally-installed copy of our own .plg: this is what Unraid actually re-reads and
 // re-installs from on every boot (rc.local iterates /boot/config/plugins/*.plg), so rewriting
 // the megacmd_version entity here is what makes a runtime MEGAcmd update survive a reboot.
 $plgPath = "/boot/config/plugins/megacmd.plg";
@@ -75,7 +75,7 @@ function saveConfig($cfg) {
 }
 
 // Rewrites the plugin's cron fragment (watchdog interval + daily update check) from the current
-// settings and asks Unraid to re-merge it into the live crontab immediately -- so changing the
+// settings and asks Unraid to re-merge it into the live crontab immediately, so changing the
 // watchdog interval on the settings page takes effect right away instead of waiting for a reboot
 // or plugin reinstall.
 function regenerateCron() {
@@ -108,7 +108,7 @@ function notify($subject, $description, $cfgKey, $importance = "normal") {
   );
 }
 
-// Appends a timestamped line to watchdog.log -- kept deliberately sparse (only notable events,
+// Appends a timestamped line to watchdog.log. Kept deliberately sparse (only notable events,
 // mirroring what already triggers a notify() call) rather than logging every 5-minute check, so
 // it stays a useful diagnostic trail instead of noise.
 function logWatchdog($message) {
@@ -178,12 +178,12 @@ function getLatestMegacmdVersion($codename) {
   return $versions[0] ?? "";
 }
 
-// Runs as nobody:users (uid 99/gid 100), matching rc.megacmd's mega-cmd-server -- MEGAcmd's
+// Runs as nobody:users (uid 99/gid 100), matching rc.megacmd's mega-cmd-server. MEGAcmd's
 // client/server IPC only works when both sides run as the same uid; a root-run client fails to
 // detect the nobody-run server at all and silently spawns a second, conflicting root-owned one.
 // MEGAcmd's own transfer-type legend (mega-transfers, mega-sync, etc.) uses a handful of Unicode
 // arrow/symbol characters (download/upload/sync/backup) that render inconsistently across
-// browsers/fonts inside a plain monospace text block -- some show as tiny/misaligned glyphs,
+// browsers/fonts inside a plain monospace text block: some show as tiny/misaligned glyphs,
 // others as full-color emoji, breaking the terminal-style look. Swap them for plain ASCII letters
 // wherever command output is displayed.
 function sanitizeTerminalOutput($text) {
@@ -196,7 +196,7 @@ function sanitizeTerminalOutput($text) {
 }
 
 // mega-transfers' own column-width calculation for the TYPE field is inconsistent across
-// different symbol combinations -- verified some combinations (e.g. upload+backup) get one
+// different symbol combinations. Verified some combinations (e.g. upload+backup) get one
 // fewer padding space than others (e.g. download+sync), even though every combination is the
 // same 2 characters wide after sanitizeTerminalOutput(). That visibly misaligns every column
 // after it. Since TYPE is always exactly 2 characters here, normalize the gap that follows it
@@ -214,7 +214,7 @@ function megaExec($args) {
   return array("output" => sanitizeTerminalOutput(implode("\n", $out)), "code" => $ret);
 }
 
-// Re-applies the configured upload/download speed limits -- MEGAcmd only remembers these for
+// Re-applies the configured upload/download speed limits. MEGAcmd only remembers these for
 // the life of the current login session, so this needs to run again after every fresh login.
 function applySpeedlimit() {
   $cfg = getConfig();
@@ -226,11 +226,11 @@ function applySpeedlimit() {
 
 // Unraid's mover deletes a folder once every file inside it has been relocated elsewhere (e.g.
 // cache filling past its threshold), then silently recreates it wherever the next file happens
-// to land -- which changes the underlying filesystem identity a sync root is pinned to, and
+// to land, which changes the underlying filesystem identity a sync root is pinned to, and
 // disables the sync with "Mismatch on sync root FSID" even though nothing is actually wrong.
 // The Mover Tuning plugin has its own documented convention for opting a folder out of just this
 // cleanup step: a file named exactly ".placeholder" makes it treat the folder as never-empty,
-// while every real file inside still gets moved normally -- filesystem-agnostic (unlike a ZFS
+// while every real file inside still gets moved normally, and it's filesystem-agnostic (unlike a ZFS
 // dataset mountpoint, mover's other, narrower exemption). Harmless if mover/Mover Tuning isn't
 // in use, or the share was never going to be touched by it anyway.
 function protectSyncRootFromMoverCleanup($localPath) {
@@ -240,8 +240,8 @@ function protectSyncRootFromMoverCleanup($localPath) {
   }
 }
 
-// A sync root can end up split across several physical disks over time -- the array allocator
-// picks a disk per file as mover relocates things -- and each physical copy needs its own
+// A sync root can end up split across several physical disks over time (the array allocator
+// picks a disk per file as mover relocates things), and each physical copy needs its own
 // .placeholder, since one created fresh by mover moving a file onto a disk that's never held
 // this folder before wouldn't have one, leaving it just as vulnerable to the same deletion-
 // then-recreation cycle. Called from the watchdog on every tick so a newly-created copy gets
@@ -267,7 +267,7 @@ function protectAllSyncRootsFromMoverCleanup() {
 // and Docker container on Unraid is expected to follow, so synced-down content would otherwise
 // be unreadable/unwritable to other users and containers. Like speed limits, MEGAcmd only
 // remembers this for the life of the current login session, so it must be re-applied after
-// every fresh login -- it survives a plain service restart, but is silently reset on logout.
+// every fresh login. It survives a plain service restart, but is silently reset on logout.
 function applyPermissions() {
   $cfg = getConfig();
   $files = $cfg["PERM_FILES"] ?? "666";
@@ -349,7 +349,7 @@ function megaGetAccountStorage() {
   return ["usedBytes" => (int)$m[1], "percent" => (float)$m[2], "totalBytes" => (int)$m[3]];
 }
 
-// Short human-readable byte size (e.g. "27.4 GB") for compact dashboard-tile display -- distinct
+// Short human-readable byte size (e.g. "27.4 GB") for compact dashboard-tile display, distinct
 // from mega-df's own "-h" output since we need the raw numbers for the percent calc anyway.
 function formatBytesShort($bytes) {
   $units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -360,7 +360,7 @@ function formatBytesShort($bytes) {
 }
 
 // Same as megaListSyncs() but also includes the ERROR column (columns: ID LOCALPATH REMOTEPATH
-// RUN_STATE STATUS ERROR SIZE FILES DIRS) -- used by the watchdog to detect new sync errors, and
+// RUN_STATE STATUS ERROR SIZE FILES DIRS), used by the watchdog to detect new sync errors, and
 // by the self-heal feature below, which needs the full untruncated path to re-add a sync
 // correctly (hence --path-display-size, same reasoning as megaListBackups() above).
 function megaListSyncsWithError() {
@@ -379,7 +379,7 @@ function megaListSyncsWithError() {
 
 // Syncs currently disabled by MEGAcmd's "Mismatch on sync root FSID" safety check (it refuses to
 // keep syncing if the local root's underlying filesystem identity changes, e.g. after an unclean
-// reboot -- see the self-heal note on selfHealSyncFsid() below). Used to show the self-heal
+// reboot; see the self-heal note on selfHealSyncFsid() below). Used to show the self-heal
 // button only when it's actually relevant, never unconditionally.
 function megaListSyncsWithFsidMismatch() {
   $syncs = [];
@@ -390,12 +390,12 @@ function megaListSyncsWithFsidMismatch() {
 }
 
 // Self-heals a sync stuck in the FSID-mismatch state. Confirmed empirically that simply
-// re-enabling it (`mega-sync -e`) does NOT clear this -- it fails again with the exact same
+// re-enabling it (`mega-sync -e`) does NOT clear this. It fails again with the exact same
 // error, even though MEGAcmd's own docs describe a "Disabled" sync as having no cached state.
 // The only fix found is to remove the sync's tracked configuration (files are untouched by this)
 // and re-add it fresh, which makes MEGAcmd record a new filesystem-identity baseline and
 // re-compare local vs remote from scratch. Deliberately never called automatically by the
-// watchdog -- only from an explicit user action, since re-adding is a real (if normally harmless)
+// watchdog: only from an explicit user action, since re-adding is a real (if normally harmless)
 // reconciliation pass and the user should decide whether the local folder is actually trustworthy
 // first.
 function selfHealSyncFsid($syncId) {
@@ -403,10 +403,10 @@ function selfHealSyncFsid($syncId) {
   foreach (megaListSyncsWithError() as $s) {
     if ($s["id"] === $syncId) { $target = $s; break; }
   }
-  if ($target === null) return "Sync not found -- it may have already been removed or changed.";
+  if ($target === null) return "Sync not found; it may have already been removed or changed.";
   $del = megaExec("mega-sync -d " . escapeshellarg($syncId));
   // Without this, a sync re-added by self-heal is just as exposed to the same mover-driven
-  // cleanup that likely caused the mismatch in the first place -- see the function's own note.
+  // cleanup that likely caused the mismatch in the first place; see the function's own note.
   protectSyncRootFromMoverCleanup($target["local"]);
   $add = megaExec("mega-sync " . escapeshellarg($target["local"]) . " " . escapeshellarg($target["remote"]));
   return trim($del["output"] . "\n" . $add["output"]);

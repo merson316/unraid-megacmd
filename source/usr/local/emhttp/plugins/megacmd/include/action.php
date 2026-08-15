@@ -56,7 +56,7 @@ switch ($action) {
       } else {
         // Guards against Unraid's mover deleting/recreating this folder once emptied, which
         // would otherwise disable the sync later with a filesystem-identity mismatch. Not
-        // relevant for backups above -- that's a mega-sync-specific failure mode.
+        // relevant for backups above, since that's a mega-sync-specific failure mode.
         protectSyncRootFromMoverCleanup($local);
         $r = megaExec("mega-sync " . escapeshellarg($local) . " " . escapeshellarg($remote));
       }
@@ -130,7 +130,7 @@ switch ($action) {
     $branch = getPlgEntity('branch');
     $latest = getLatestMegacmdVersion($codename);
     if ($latest === "" || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/', $latest)) {
-      $message = "Could not determine the latest MEGAcmd version -- update aborted.";
+      $message = "Could not determine the latest MEGAcmd version, update aborted.";
       break;
     }
     $rawbase = "https://raw.githubusercontent.com/$github/$branch";
@@ -151,7 +151,7 @@ switch ($action) {
     }
     $message = setPlgEntity('megacmd_version', $latest)
       ? "Updated MEGAcmd to $latest."
-      : "Installed MEGAcmd $latest but could not persist the version pin in megacmd.plg -- it will revert to the old version on next reboot.";
+      : "Installed MEGAcmd $latest but could not persist the version pin in megacmd.plg, so it will revert to the old version on next reboot.";
     $message .= "\n" . implode("\n", $o3);
     unset($_SESSION['megacmd_latest_checked']);
     exec("$rc start 2>&1"); sleep(1);

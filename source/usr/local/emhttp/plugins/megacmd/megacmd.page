@@ -106,9 +106,9 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 }
 </style>
 
-<p class="megacmd-intro">Sync files between your MEGA cloud storage account and any Unraid share, powered by MEGAcmd (MEGA's official command-line client). Press the Help button (top right) at any time to see what each section below does.</p>
+<p class="megacmd-intro">This plugin syncs files between your MEGA cloud storage account and any Unraid share. It uses MEGAcmd, the official command-line client from MEGA. Press the Help button (top right) to see what each section below does.</p>
 
-<p class="megacmd-warning">This plugin stores its login session and all sync/backup configuration under its appdata folder (<code>appdata/megacmd</code>). Most of that is in a hidden <code>.megaCmd</code> subfolder you won't see at a glance -- don't delete the appdata/megacmd folder to "clean up" logs or free space, or you'll be logged out and lose every sync and backup you've configured. The visible <code>server.log</code> file is the only thing safe to delete on its own; use "View recent logs" below instead if you just want to check on things.</p>
+<p class="megacmd-warning"><strong>CAUTION:</strong> Do not delete the appdata/megacmd folder. This plugin stores its login session and all sync and backup settings there, mostly inside a hidden <code>.megaCmd</code> subfolder. If you delete this folder, MEGAcmd logs you out and removes every sync and backup you have set up. The visible <code>server.log</code> file alone is safe to delete. To check activity without deleting anything, use "View recent logs" below.</p>
 
 <h2 class="megacmd-group-title">Connection</h2>
 <div class="megacmd-group megacmd-group-connection">
@@ -117,9 +117,9 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <h3>Service</h3>
   <? if (!$storageReady): ?>
     <p><span class="megacmd-status-bad">Waiting for storage</span></p>
-    <p>MEGAcmd stores its login and sync configuration under your Unraid appdata storage
-    location, which isn't available yet -- this usually just means the array hasn't been
-    started. This page will work as soon as it is.</p>
+    <p>MEGAcmd stores its login and sync settings on your Unraid appdata storage. This
+    storage is not available yet. This usually means the array has not started. This page
+    works again after the array starts.</p>
   <? else: ?>
     <p>Status:
       <?= $running ? '<span class="megacmd-status-ok">Running</span>' : '<span class="megacmd-status-bad">Stopped</span>' ?>
@@ -142,13 +142,13 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     </div>
     <? if ($fsidSyncs): ?>
       <p class="megacmd-warning">
-        <strong><?= count($fsidSyncs) ?> sync<?= count($fsidSyncs) === 1 ? '' : 's' ?> disabled after a filesystem-identity mismatch</strong>
-        (this can happen after an unclean reboot, or when Unraid's mover relocates the sync
-        folder between the cache pool and the array). Self-healing removes the affected sync's tracked
-        configuration -- your files are not touched -- and re-adds it fresh, which re-compares
-        every file between the local folder and MEGA from scratch. This is safe if the local
-        folder's real contents are intact; if you're not sure why this happened, check the local
-        folder yourself before self-healing.
+        <strong><?= count($fsidSyncs) ?> sync<?= count($fsidSyncs) === 1 ? '' : 's' ?> disabled after a filesystem-identity mismatch.</strong>
+        This can happen after an unclean reboot. It can also happen when Unraid's mover
+        moves the sync folder between the cache pool and the array. Self-heal removes the
+        sync's stored settings, but does not touch your files. It then adds the sync again,
+        which compares every file between the local folder and MEGA. This is safe if the
+        local folder's contents are correct. If you are not sure why this happened, check
+        the local folder before you self-heal.
       </p>
       <form class="megacmd-ajax-form" method="post">
         <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
@@ -165,12 +165,12 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <? endif; ?>
   <? endif; ?>
   <blockquote class="inline_help">
-    This runs the background process that actually performs your syncs and backups -- it needs
-    to be Running before anything else on this page will work. Stop only pauses it (your syncs
-    and backups stay configured and will resume once started again); Restart is useful if
-    something seems stuck. "View recent logs" and "Download logs" show recent activity, which
-    is useful for troubleshooting. If a sync was disabled due to a filesystem-identity mismatch, a
-    self-heal option appears here explaining what happened and what fixing it will do.
+    This runs the background process that performs your syncs and backups. Its status must
+    show Running before anything else on this page works. Stop pauses the service only: your
+    syncs and backups stay configured, and resume once you start the service again. Use
+    Restart if something seems stuck. "View recent logs" and "Download logs" show recent
+    activity, for troubleshooting. If a sync is disabled by a filesystem-identity mismatch, a
+    self-heal option appears here. It explains what happened and what the fix does.
   </blockquote>
 </div>
 
@@ -199,11 +199,11 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     </form>
   <? endif; ?>
   <blockquote class="inline_help">
-    Connects this Unraid server to your MEGA account so it can access your cloud storage. Enter
-    the same email and password you use to log into MEGA. If you have two-factor authentication
-    (2FA) turned on for your MEGA account, also enter the current 6-digit code from your
-    authenticator app. Logging out disconnects the account, but any syncs or backups you've
-    configured stay in place and will resume once you log back in.
+    This connects your Unraid server to your MEGA account, for access to your cloud
+    storage. Enter the same email and password you use to log in to MEGA. If you have
+    two-factor authentication (2FA) turned on for your MEGA account, also enter the current
+    6-digit code from your authenticator app. Logout disconnects the account, but keeps
+    every sync and backup you have set up. They resume when you log in again.
   </blockquote>
 </div>
 <? endif; ?>
@@ -218,10 +218,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <h3>Current syncs</h3>
   <div class="megacmd-msg"><?= htmlspecialchars($syncList) ?></div>
   <blockquote class="inline_help">
-    A sync keeps a folder on this server and a folder on MEGA continuously matching each other:
-    change, add, or delete a file in either place and the same change happens on the other side
-    automatically. This lists every sync currently configured below, and roughly how much data
-    each one covers.
+    A sync keeps a folder on this server and a folder on MEGA the same as each other. If
+    you change, add, or delete a file in either place, MEGAcmd makes the same change on
+    the other side. The list below shows every sync you have set up, and roughly how
+    much data each one covers.
   </blockquote>
 </div>
 
@@ -234,11 +234,12 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <p>No completed sync transfers yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    A log of completed and failed transfers -- both sync and backup transfers show up here, since
-    MEGAcmd tracks them the same way once finished. Useful for confirming something actually
-    copied everything you expected, or for spotting a problem after the fact. The TYPE column
-    combines a direction with a context: D=Download, U=Upload, S=Sync, B=Backup -- so "DS" means
-    a download that happened as part of a sync, "UB" an upload as part of a backup, and so on.
+    This is a log of completed and failed transfers. Sync and backup transfers both show
+    up here, because MEGAcmd tracks them the same way once each finishes. Use this list
+    to confirm that a transfer copied everything you expected, or to find a problem after
+    the fact. The TYPE column combines a direction with a context: D=Download, U=Upload,
+    S=Sync, B=Backup. For example, "DS" means a download as part of a sync, and "UB"
+    means an upload as part of a backup.
   </blockquote>
 </div>
 
@@ -250,11 +251,11 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <p>No backups configured.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    Unlike a sync, a backup is one-way and runs on a schedule: at the interval you choose,
-    MEGAcmd takes a fresh snapshot of a local folder and uploads it to a new dated folder on
-    MEGA, automatically deleting your oldest snapshot once you exceed the number you asked to
-    keep. Files deleted locally are never removed from snapshots already uploaded. MEGA itself
-    still labels this feature BETA.
+    A backup differs from a sync: it is one-way, and runs on a schedule. At the
+    interval you choose, MEGAcmd takes a new snapshot of a local folder and uploads it to
+    a new dated folder on MEGA. When the number of snapshots goes over the limit you
+    set, MEGAcmd deletes the oldest one. A file you delete locally stays in any snapshot
+    already uploaded. MEGA still labels this feature BETA.
   </blockquote>
 </div>
 
@@ -267,13 +268,19 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <p>No backup history yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    A record of each individual scheduled backup run -- not the ongoing backup configuration
-    itself (shown in "Current backups" above), but whether each past run finished. STATUS is one
-    of: COMPLETE, INCOMPLETE (a transfer was cancelled or failed), ABORTED (manually cancelled
-    mid-run), MISCARRIED (the service stopped mid-run), or SKIPPED (the service wasn't running
-    when a run was due). This history belongs to the backup's own configuration -- if you remove
-    a backup below, its history here disappears too, even though the transfers it already made
-    still show up permanently in "Transfer history" above.
+    This is a record of each past scheduled backup run: whether each one finished, not
+    the ongoing backup setup itself (shown in "Current backups" above). STATUS is one of
+    these:
+    <ul>
+      <li>COMPLETE</li>
+      <li>INCOMPLETE: a transfer was cancelled or failed</li>
+      <li>ABORTED: cancelled by hand mid-run</li>
+      <li>MISCARRIED: the service stopped mid-run</li>
+      <li>SKIPPED: the service was not running when a run was due</li>
+    </ul>
+    This history belongs to the backup's own setup. If you remove a backup below, its
+    history here disappears too. The transfers it already made still stay in "Transfer
+    history" above.
   </blockquote>
 </div>
 
@@ -302,13 +309,13 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         <? endforeach; ?>
       </select>
       <input type="text" id="mc_remotepath" name="remotepath" placeholder="/example">
-      <small class="megacmd-hint">Pick an existing remote folder, or type a path (a new folder name will be created).</small>
+      <small class="megacmd-hint">Pick an existing remote folder, or type a path. MEGAcmd creates a new folder if the path does not exist yet.</small>
     </div>
     <div id="mc_backup_fields" style="display:none">
       <div class="megacmd-field megacmd-narrow">
         <label>Backup period</label>
         <input type="text" name="backupperiod" value="1d">
-        <small class="megacmd-hint">e.g. "1d" for daily, "12h" for every 12 hours, or a cron-like expression.</small>
+        <small class="megacmd-hint">For example, "1d" for daily, "12h" for every 12 hours, or a cron-like expression.</small>
       </div>
       <div class="megacmd-field megacmd-narrow">
         <label>Backups to keep</label>
@@ -318,10 +325,11 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <button type="submit">Add</button>
   </form>
   <blockquote class="inline_help">
-    Set up a new sync or backup. Choose "Two-way sync" for a folder that should always mirror a
-    MEGA folder, or "One-way backup" for scheduled snapshots instead (see the explanations above
-    for the difference). Pick a local folder on this server and a MEGA folder to pair it with --
-    if the MEGA folder doesn't already exist, it will be created automatically.
+    Use this to set up a new sync or backup. Choose "Two-way sync" for a folder
+    that must always mirror a MEGA folder. Choose "One-way backup" for scheduled snapshots
+    instead (see the explanations above for the difference). Pick a local folder on this
+    server, and a MEGA folder to pair it with. If the MEGA folder does not exist yet,
+    MEGAcmd creates it.
   </blockquote>
 </div>
 
@@ -344,9 +352,9 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <? endif; ?>
   </form>
   <blockquote class="inline_help">
-    Stops and removes a configured sync from the list above. This does not delete any files
-    already copied to MEGA or kept on this server -- it only stops keeping the two sides in sync
-    going forward.
+    This stops and removes a sync from the list above. It does not delete any files
+    already copied to MEGA or kept on this server. It only stops MEGAcmd from keeping
+    the two sides the same from this point on.
   </blockquote>
 </div>
 
@@ -369,8 +377,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <? endif; ?>
   </form>
   <blockquote class="inline_help">
-    Stops a configured backup. Like removing a sync, this does not delete any backup snapshots
-    MEGAcmd has already uploaded to MEGA.
+    This stops a backup. Like removing a sync, it does not delete any backup snapshot
+    that MEGAcmd already uploaded to MEGA.
   </blockquote>
 </div>
 
@@ -401,9 +409,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <button type="submit">Check for updates</button>
   </form>
   <blockquote class="inline_help">
-    MEGAcmd is MEGA's own software that this plugin relies on to talk to your MEGA account. MEGA
-    occasionally releases newer versions with bug fixes or improvements; use this to check for
-    and install one without waiting for a new version of this plugin.
+    MEGAcmd is software from MEGA that this plugin uses to talk to your MEGA account.
+    MEGA releases newer versions from time to time, with fixes or improvements. Use this
+    to check for a new version and install it, without a wait for a new
+    version of this plugin.
   </blockquote>
 </div>
 
@@ -437,13 +446,14 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
           <? endforeach ?>
         </select>
       </label>
-      <small class="megacmd-hint">Besides restarting a crashed service, the watchdog also reapplies
-        file/folder permissions, protects sync folders from being disrupted by Unraid's mover, and
-        watches for sync or login problems -- all at this same interval regardless of the checkbox
-        above. A shorter interval catches problems (and protects sync folders) sooner.</small>
+      <small class="megacmd-hint">The watchdog also does more than restart a crashed service. At
+        this same interval, it reapplies file and folder permissions, protects sync folders from
+        Unraid's mover, and checks for sync or login problems. It does these checks regardless of
+        the checkbox above. A shorter interval finds problems, and protects sync folders,
+        sooner.</small>
     </div>
     <div class="megacmd-field">
-      <label class="megacmd-group-label">Permissions for newly created files/folders</label>
+      <label class="megacmd-group-label">Permissions for newly created files and folders</label>
       <label class="megacmd-inline-group">Files
         <input type="text" name="perm_files" value="<?= htmlspecialchars($cfg['PERM_FILES']) ?>" class="megacmd-narrow-input">
       </label>
@@ -451,33 +461,33 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         <input type="text" name="perm_folders" value="<?= htmlspecialchars($cfg['PERM_FOLDERS']) ?>" class="megacmd-narrow-input">
       </label>
       <small class="megacmd-hint">
-        Defaults (666 / 777) match Unraid's own "docker safe" permissions, so files MEGAcmd
-        downloads or syncs are readable/writable by the "nobody" user Docker containers and
-        other shares typically run as. Changing these is at your own risk -- MEGAcmd itself
-        enforces a floor of 600 for files and 700 for folders.
+        The defaults (666 / 777) match Unraid's own "docker safe" permissions. With these
+        defaults, the "nobody" user that Docker containers and other shares run as can read
+        and write files that MEGAcmd downloads or syncs. A change to these values is at your
+        own risk. MEGAcmd itself enforces a floor of 600 for files and 700 for folders.
       </small>
     </div>
     <div class="megacmd-field megacmd-narrow">
       <label>Upload speed limit</label>
       <input type="text" name="speedlimit_up" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_UP']) ?>" placeholder="unlimited">
-      <small class="megacmd-hint">e.g. "2M" for 2 MB/s. Leave blank for unlimited.</small>
+      <small class="megacmd-hint">For example, "2M" for 2 MB/s. Leave this blank for unlimited.</small>
     </div>
     <div class="megacmd-field megacmd-narrow">
       <label>Download speed limit</label>
       <input type="text" name="speedlimit_down" value="<?= htmlspecialchars($cfg['SPEEDLIMIT_DOWN']) ?>" placeholder="unlimited">
-      <small class="megacmd-hint">e.g. "10M" for 10 MB/s. Leave blank for unlimited.</small>
+      <small class="megacmd-hint">For example, "10M" for 10 MB/s. Leave this blank for unlimited.</small>
     </div>
     <button type="submit">Save settings</button>
   </form>
   <blockquote class="inline_help">
-    Optional behavior for this plugin. Notifications use Unraid's own notification system
-    (bell icon / optional email) and can be turned on or off individually for each type of
-    event. The watchdog checks in on the interval you choose here -- restarting the background
-    service if it crashes (when that's enabled), reapplying file/folder permissions, watching
-    for sync or login problems, and protecting sync folders from being disrupted by Unraid's
-    mover. Permissions control what MEGAcmd sets on newly created files and folders. Speed
-    limits cap how much of your internet connection MEGAcmd is allowed to use, so a big sync or
-    backup doesn't slow down everything else on your network.
+    These settings are optional. Notifications use Unraid's own notification system (bell
+    icon, and email if you have that on). You can turn each notification type on or off.
+    The watchdog checks in at the interval you choose here. At each check, it does these
+    tasks: restart the background service if it crashes (when that setting is on), reapply
+    file and folder permissions, check for sync or login problems, and protect sync folders
+    from Unraid's mover. Permissions control what MEGAcmd sets on newly created files and
+    folders. Speed limits cap how much of your internet connection MEGAcmd can use, so a
+    big sync or backup does not slow down everything else on your network.
   </blockquote>
 </div>
 

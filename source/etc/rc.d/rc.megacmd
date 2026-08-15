@@ -4,7 +4,7 @@
 # so login/sync configuration survives reboots.
 
 # Respect Unraid's own "Default appdata storage location" (Settings > Docker) instead of
-# assuming /mnt/user/appdata -- it's user-configurable and may point at a direct pool path.
+# assuming /mnt/user/appdata, since it's user-configurable and may point at a direct pool path.
 APPDATA_ROOT="$(grep -oP '(?<=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2>/dev/null)"
 APPDATA_ROOT="${APPDATA_ROOT%/}"
 [ -z "$APPDATA_ROOT" ] && APPDATA_ROOT="/mnt/user/appdata"
@@ -18,7 +18,7 @@ LOGFILE="$MEGACMD_HOME/server.log"
 # Cleared by start() since starting means we do want it running again. Lives on tmpfs
 # (/var/run), so it can't outlive a reboot and accidentally suppress the watchdog forever.
 STOPPED_MARKER="/var/run/megacmd.stopped"
-# Run the server as nobody:users (Unraid's standard share owner) instead of root -- rc.d
+# Run the server as nobody:users (Unraid's standard share owner) instead of root. rc.d
 # scripts run as root, and mega-cmd-server otherwise creates every downloaded/synced file
 # (and its own .debris/.megaignore housekeeping files) as root, breaking read/write access
 # from Docker containers and other users that expect normal nobody:users-owned share content.
@@ -39,16 +39,16 @@ start() {
     echo "mega-cmd-server already running (pid $(cat "$PIDFILE"))"
     return 0
   fi
-  # The appdata root itself (e.g. .../appdata) doesn't need to exist yet -- that's normal and
-  # gets created below -- but its PARENT must be a genuine mount already, otherwise the
+  # The appdata root itself (e.g. .../appdata) doesn't need to exist yet (that's normal and
+  # gets created below), but its PARENT must be a genuine mount already, otherwise the
   # array/pool backing it simply isn't started yet. A plain directory-exists check isn't
   # enough: /mnt/user (and similar mountpoint stubs) exist on disk from early boot regardless
-  # of whether the array or user shares have actually mounted onto them yet -- writing here
+  # of whether the array or user shares have actually mounted onto them yet, and writing here
   # before that happens creates real files directly on the pre-mount stub, which can block
   # Unraid's own user-share mount from ever completing.
   APPDATA_PARENT="$(dirname "$APPDATA_ROOT")"
   if ! mountpoint -q "$APPDATA_PARENT" 2>/dev/null && ! { [ "$APPDATA_PARENT" = "/mnt/user" ] && mountpoint -q /mnt/user0 2>/dev/null; }; then
-    echo "Cannot start: $APPDATA_PARENT is not mounted yet -- is the array started?"
+    echo "Cannot start: $APPDATA_PARENT is not mounted yet. Is the array started?"
     return 1
   fi
   mkdir -p "$MEGACMD_HOME"

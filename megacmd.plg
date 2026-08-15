@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.08.15">
+<!ENTITY version "2026.08.15.2">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -15,12 +15,12 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
 ###2026.08.15
-- A sync's local folder is now protected from being disrupted by Unraid's mover moving files
-  between the cache pool and the array, which could otherwise disable it with a
-  filesystem-identity mismatch. This is applied automatically to new and self-healed syncs, and
-  checked continuously by the watchdog for existing ones.
-- Reworded the watchdog setting to reflect everything it actually does (permissions, sync health,
-  and the above), not just restarting a crashed service.
+- MEGAcmd now protects a sync's local folder from Unraid's mover. Without this fix, mover can
+  disable a sync with a filesystem-identity mismatch when it moves files between the cache pool
+  and the array. This protection applies automatically to new and self-healed syncs. The
+  watchdog also checks it continuously for existing syncs.
+- Reworded the watchdog setting to name everything it actually does (permissions, sync health,
+  and the above), not just a crashed-service restart.
 - The filesystem-identity mismatch warning now also explains the mover-related cause.
 
 ###2026.07.10
@@ -28,23 +28,23 @@
   bar, active backup count, and a warning indicator when a sync needs attention.
 
 ###2026.07.09.2
-- Added a distinct notification for a sync being disabled due to a filesystem-identity mismatch
-  (rather than lumping it in with generic sync errors), with its own on/off toggle.
-- Added a "Self-heal this sync" option on the settings page that appears only when a sync is
-  actually stuck in that state, with a clear explanation of what it does before you use it.
+- A sync disabled by a filesystem-identity mismatch now gets its own notification type, with
+  its own on-off toggle, instead of a generic sync-error notification.
+- Added a "Self-heal this sync" option on the settings page. It appears only when a sync is
+  stuck in that state, and explains what it does before you use it.
 
 ###2026.07.09
-- Fixed a boot-time race that could create plugin folders before array storage and user
-  shares were ready, which could leave shares incomplete after a reboot.
-- The service no longer refuses to shut down cleanly, which could previously stall or force
-  a reboot.
+- Fixed a boot-time race that created plugin folders before array storage and user
+  shares were ready. This race could leave shares incomplete after a reboot.
+- The service no longer refuses to shut down cleanly. Before this fix, that refusal could
+  stall or force a reboot.
 - The automatic service-recovery feature no longer restarts the service while Unraid is
   shutting it down intentionally.
 
 ###2026.07.05.31
 - Newly created files and folders now default to Unraid's own "docker safe" permissions
-  (666 / 777) instead of MEGAcmd's own more restrictive defaults, so synced content is
-  readable and writable by other shares and containers. Both values are configurable.
+  (666 and 777), not MEGAcmd's own stricter defaults. Other shares and containers can now
+  read and write synced content. Both values are configurable.
 
 ###2026.07.05.30
 - Split the single notification switch into individual toggles for each event type (service
@@ -52,49 +52,52 @@
 - The watchdog's check interval is now configurable instead of fixed at 5 minutes.
 
 ###2026.07.05.29
-- Fixed column alignment in Transfer history -- MEGAcmd's own spacing for the TYPE column was
+- Fixed column alignment in Transfer history: MEGAcmd's own spacing for the TYPE column was
   inconsistent between certain transfer-type combinations.
 
 ###2026.07.05.28
-- Added a quick-reference legend at the bottom of Transfer history and Backup history, so the
-  codes are visible without needing to press the Help button.
+- Added a quick-reference legend at the bottom of Transfer history and Backup history, so you
+  can see the codes without pressing the Help button.
 
 ###2026.07.05.27
 - Renamed "Sync history" to "Transfer history" since it always included backup transfers too.
-- Added a legend explaining the transfer-type codes (D/U/S/B) and backup status values.
-- Fixed long file paths being unnecessarily truncated in Current syncs and Transfer history.
+- Added a legend that explains the transfer-type codes (D, U, S, B) and backup status values.
+- Long file paths no longer get cut short in Current syncs and Transfer history.
 
 ###2026.07.05.26
-- Fixed transfer-type symbols rendering inconsistently in Current syncs, Sync history, Current
-  backups, Backup history, and the log viewer.
+- Fixed transfer-type symbols that rendered inconsistently in Current syncs, Sync history,
+  Current backups, Backup history, and the log viewer.
 - Enlarged the "View recent logs" pop-up.
 
 ###2026.07.05.25
-- Added a warning on the settings page explaining that the appdata folder holds login and sync
-  configuration, not just logs, and shouldn't be deleted.
+- Added a warning on the settings page. It explains that the appdata folder holds login and
+  sync configuration, not just logs, and must not be deleted.
 - Added "View recent logs" and "Download logs" buttons for easier troubleshooting.
 
 ###2026.07.05.24
-- Now respects Unraid's own default appdata storage location setting instead of assuming a fixed path.
-- Shows a clear message when array storage isn't available yet, instead of an ambiguous "Stopped" status.
+- Now respects Unraid's own default appdata storage location setting. It no longer assumes a
+  fixed path.
+- Shows a clear message when array storage is not available yet, instead of an unclear
+  "Stopped" status.
 
 ###2026.07.05.23
-- Added a backup history view showing the outcome of each scheduled backup.
-- Grouped related sync and backup sections together for easier navigation.
+- Added a backup history view. It shows the outcome of each scheduled backup.
+- Grouped related sync and backup sections together, for easier navigation.
 
 ###2026.07.05.22
-- "Remove backup" is now a simple dropdown selection, matching "Remove sync".
+- "Remove backup" is now a simple dropdown selection, like "Remove sync".
 
 ###2026.07.05.21
 - Renamed "Add sync" to "Add sync or backup" for clarity.
 - Reorganized the settings page into clearly labeled sections.
-- Added built-in help text for every section, accessible via Unraid's Help button.
+- Added built-in help text for every section. Press Unraid's Help button to see it.
 
 ###2026.07.05.20
 - Fixed links that pointed to an incorrect settings page address.
 
 ###2026.07.05.19
-- Added quick-access and show/hide controls to the Dashboard tile, matching other Unraid dashboard tiles.
+- Added quick-access and show-or-hide controls to the Dashboard tile. These controls match
+  other Unraid dashboard tiles.
 
 ###2026.07.05.18
 - Added optional Unraid notifications for service problems, sync errors, and available MEGAcmd updates.
@@ -102,7 +105,7 @@
 - Added configurable upload and download speed limits.
 - Added log rotation to prevent log files from growing indefinitely.
 - Added one-way backups as an alternative to two-way sync.
-- Added a Dashboard tile showing sync status at a glance.
+- Added a Dashboard tile. It shows sync status at a glance.
 - Added an open-source license.
 
 ###2026.07.05.17
@@ -110,19 +113,19 @@
 
 ###2026.07.05.16
 - Added a plugin description to the Plugins page and settings page.
-- Fixed the plugin icon not appearing in the Settings tab's tile view.
+- The plugin icon now appears correctly in the Settings tab's tile view.
 
 ###2026.07.05.15
-- Fixed MEGAcmd terminal commands failing after the previous permissions fix.
+- Fixed MEGAcmd terminal commands, which failed after the previous permissions fix.
 
 ###2026.07.05.14
-- Fixed synced files being created with incorrect ownership; they now match Unraid's standard permissions.
+- Fixed synced files, which got the wrong owner. They now match Unraid's standard permissions.
 
 ###2026.07.05.13
-- Added a sync history view showing completed transfers.
+- Added a sync history view. It shows completed transfers.
 
 ###2026.07.05.12
-- Added the ability to check for and install newer MEGAcmd releases directly from the settings page.
+- You can now check for newer MEGAcmd releases, and install one, directly from the settings page.
 
 ###2026.07.05.11
 - Corrected the plugin author information.
@@ -131,38 +134,40 @@
 - Replaced the generic plugin icon with official MEGA branding.
 
 ###2026.07.05.9
-- Fixed "command not found" errors when running MEGAcmd commands from a terminal or SSH session.
+- Fixed "command not found" errors that appeared when you ran MEGAcmd commands from a terminal
+  or SSH session.
 
 ###2026.07.05.8
 - Improved field spacing and alignment on the settings page.
 - Long file paths now display more cleanly.
 
 ###2026.07.05.7
-- Fixed remaining cases of the settings page scrolling horizontally.
-- Improved the styling of the displayed account email.
+- Fixed remaining cases where the settings page scrolled sideways.
+- Improved the style of the account email shown on the page.
 
 ###2026.07.05.6
 - Fixed a bug that could prevent the settings page from loading.
 
 ###2026.07.05.5
-- Fixed the settings page scrolling horizontally on long file paths.
-- Fixed actions being repeated unintentionally when refreshing the settings page.
+- Fixed the settings page, which scrolled sideways on long file paths.
+- Actions no longer repeat by themselves when you refresh the settings page.
 
 ###2026.07.05.4
-- Redesigned the settings page with clearer, separated sections and a dropdown for removing syncs.
+- Redesigned the settings page with clearer, separated sections and a dropdown to remove syncs.
 
 ###2026.07.05.3
 - Local folder selection now uses Unraid's built-in folder browser.
 
 ###2026.07.05.2
-- Added dropdown pickers for local shares and existing MEGA folders when adding a sync.
+- Added dropdown pickers for local shares and existing MEGA folders. Use them when you add a sync.
 
 ###2026.07.05
-- Fixed a bug causing every button on the settings page (login, sync, service control) to silently fail.
+- Fixed a bug that made every button on the settings page (login, sync, service control) fail silently.
 
 ###2026.07.04
-- Initial release: sync files between a MEGA account and Unraid shares using MEGA's official command-line client.
-- MEGAcmd binaries are downloaded fresh from MEGA at install time rather than bundled with the plugin.
+- Initial release. Sync files between a MEGA account and Unraid shares, with MEGA's official
+  command-line client.
+- This plugin downloads MEGAcmd binaries fresh from MEGA at install time. It does not bundle them.
 - Login, session, and sync configuration persist across reboots.
   </CHANGES>
 
@@ -176,7 +181,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>7cfa54649a8b43b79332d7cdc98d812b</MD5>
+    <MD5>0267e1d43166a3eeb2d99cc6ec301c2c</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -195,7 +200,7 @@ rm -f /tmp/megacmd-fetch.sh
   <FILE Run="/bin/bash">
     <INLINE>
 # Respect Unraid's own "Default appdata storage location" (Settings > Docker) instead of
-# assuming /mnt/user/appdata -- it's user-configurable and may point at a direct pool path.
+# assuming /mnt/user/appdata, since it's user-configurable and may point at a direct pool path.
 APPDATA_ROOT="$(grep -oP '(?&lt;=DOCKER_APP_CONFIG_PATH=")[^"]*' /boot/config/docker.cfg 2&gt;/dev/null)"
 APPDATA_ROOT="${APPDATA_ROOT%/}"
 [ -z "$APPDATA_ROOT" ] &amp;&amp; APPDATA_ROOT="/mnt/user/appdata"
@@ -205,7 +210,7 @@ for f in /opt/megacmd/bin/mega-*; do
 done
 
 # Log rotation config is generated here (rather than shipped as a static file) since it needs
-# the same resolved APPDATA_ROOT baked in -- logrotate.d configs can't use shell variables.
+# the same resolved APPDATA_ROOT baked in, since logrotate.d configs can't use shell variables.
 # /etc is part of Unraid's ephemeral rootfs, recreated on every boot along with everything
 # else this block already does, so regenerating it here every time is the correct approach,
 # not a one-off.
@@ -223,7 +228,7 @@ $APPDATA_ROOT/megacmd/home/watchdog.log {
 }
 LOGROTATEEOF
 
-# Watchdog (auto-restart + failure notifications, every 5 min) and a daily update check --
+# Watchdog (auto-restart + failure notifications, every 5 min) and a daily update check.
 # /boot/config/plugins/&name;/*.cron is combined into the real crontab by update_cron.
 mkdir -p /boot/config/plugins/&name;
 cat &gt; /boot/config/plugins/&name;/megacmd.cron &lt;&lt;'CRONEOF'
@@ -232,7 +237,7 @@ cat &gt; /boot/config/plugins/&name;/megacmd.cron &lt;&lt;'CRONEOF'
 CRONEOF
 /usr/local/sbin/update_cron
 
-# Safe to call unconditionally on every (re)install -- rc.megacmd itself now refuses to
+# Safe to call unconditionally on every (re)install, since rc.megacmd itself now refuses to
 # start until the resolved appdata parent is a genuine mount, not just a directory that
 # exists (which is true from early boot regardless of whether the array/shares are up).
 &plugdir;/event/disks_mounted
