@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.08.15.2">
+<!ENTITY version "2026.08.15.3">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,13 +14,17 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.08.15.3
+- Clarified wording in a few places on the settings page and in notifications, where a sentence
+  could be read more than one way.
+
 ###2026.08.15
 - MEGAcmd now protects a sync's local folder from Unraid's mover. Without this fix, mover can
   disable a sync with a filesystem-identity mismatch when it moves files between the cache pool
   and the array. This protection applies automatically to new and self-healed syncs. The
   watchdog also checks it continuously for existing syncs.
-- Reworded the watchdog setting to name everything it actually does (permissions, sync health,
-  and the above), not just a crashed-service restart.
+- Reworded the watchdog setting to name everything it does: permissions, sync health, mover
+  protection, and more, not just a crashed-service restart.
 - The filesystem-identity mismatch warning now also explains the mover-related cause.
 
 ###2026.07.10
@@ -181,7 +185,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>0267e1d43166a3eeb2d99cc6ec301c2c</MD5>
+    <MD5>05dab49ead7a1f64701666d89e9f495d</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

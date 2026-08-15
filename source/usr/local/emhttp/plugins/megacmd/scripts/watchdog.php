@@ -23,7 +23,7 @@ $logPosFile = "$megaHome/.watchdog_logpos";
 // the service right as Unraid is trying to unmount shares, stalling the reboot.
 if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !file_exists("/var/run/megacmd.stopped") && !serviceRunning()) {
   exec("/etc/rc.d/rc.megacmd start >/dev/null 2>&1");
-  logWatchdog("Service was not running, restarted automatically.");
+  logWatchdog("Service was not running. MEGAcmd restarted it automatically.");
   notify(
     "MEGAcmd service restarted",
     "mega-cmd-server was not running. MEGAcmd restarted it automatically.",

@@ -166,8 +166,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <? endif; ?>
   <blockquote class="inline_help">
     This runs the background process that performs your syncs and backups. Its status must
-    show Running before anything else on this page works. Stop pauses the service only: your
-    syncs and backups stay configured, and resume once you start the service again. Use
+    show Running before anything else on this page works. Stop pauses the service only. Your
+    syncs and backups stay configured, and they resume when you start the service again. Use
     Restart if something seems stuck. "View recent logs" and "Download logs" show recent
     activity, for troubleshooting. If a sync is disabled by a filesystem-identity mismatch, a
     self-heal option appears here. It explains what happened and what the fix does.
@@ -199,7 +199,7 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     </form>
   <? endif; ?>
   <blockquote class="inline_help">
-    This connects your Unraid server to your MEGA account, for access to your cloud
+    This connects your Unraid server to your MEGA account, so it can reach your cloud
     storage. Enter the same email and password you use to log in to MEGA. If you have
     two-factor authentication (2FA) turned on for your MEGA account, also enter the current
     6-digit code from your authenticator app. Logout disconnects the account, but keeps
@@ -268,9 +268,9 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <p>No backup history yet.</p>
   <? endif; ?>
   <blockquote class="inline_help">
-    This is a record of each past scheduled backup run: whether each one finished, not
-    the ongoing backup setup itself (shown in "Current backups" above). STATUS is one of
-    these:
+    This is a record of each past scheduled backup run: it shows whether each one
+    finished. It is not the ongoing backup setup itself (shown in "Current backups" above).
+    STATUS is one of these:
     <ul>
       <li>COMPLETE</li>
       <li>INCOMPLETE: a transfer was cancelled or failed</li>
@@ -411,8 +411,8 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
   <blockquote class="inline_help">
     MEGAcmd is software from MEGA that this plugin uses to talk to your MEGA account.
     MEGA releases newer versions from time to time, with fixes or improvements. Use this
-    to check for a new version and install it, without a wait for a new
-    version of this plugin.
+    to check for a new MEGAcmd version and install it. You do not need to
+    wait for a new version of this plugin.
   </blockquote>
 </div>
 
@@ -446,11 +446,11 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
           <? endforeach ?>
         </select>
       </label>
-      <small class="megacmd-hint">The watchdog also does more than restart a crashed service. At
-        this same interval, it reapplies file and folder permissions, protects sync folders from
-        Unraid's mover, and checks for sync or login problems. It does these checks regardless of
-        the checkbox above. A shorter interval finds problems, and protects sync folders,
-        sooner.</small>
+      <small class="megacmd-hint">At this interval, the watchdog does more than restart a crashed
+        service. It also reapplies file and folder permissions, protects sync folders from
+        Unraid's mover, and checks for sync or login problems. It does these tasks regardless of
+        the checkbox above. A shorter interval finds problems sooner, and protects sync folders
+        sooner too.</small>
     </div>
     <div class="megacmd-field">
       <label class="megacmd-group-label">Permissions for newly created files and folders</label>
@@ -462,9 +462,10 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       </label>
       <small class="megacmd-hint">
         The defaults (666 / 777) match Unraid's own "docker safe" permissions. With these
-        defaults, the "nobody" user that Docker containers and other shares run as can read
-        and write files that MEGAcmd downloads or syncs. A change to these values is at your
-        own risk. MEGAcmd itself enforces a floor of 600 for files and 700 for folders.
+        defaults, Docker containers and other shares (which run as the "nobody" user) can
+        read and write files that MEGAcmd downloads or syncs. A change to these values is
+        at your own risk. MEGAcmd itself enforces a floor of 600 for files and 700 for
+        folders.
       </small>
     </div>
     <div class="megacmd-field megacmd-narrow">
@@ -480,14 +481,19 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
     <button type="submit">Save settings</button>
   </form>
   <blockquote class="inline_help">
-    These settings are optional. Notifications use Unraid's own notification system (bell
-    icon, and email if you have that on). You can turn each notification type on or off.
-    The watchdog checks in at the interval you choose here. At each check, it does these
-    tasks: restart the background service if it crashes (when that setting is on), reapply
-    file and folder permissions, check for sync or login problems, and protect sync folders
-    from Unraid's mover. Permissions control what MEGAcmd sets on newly created files and
-    folders. Speed limits cap how much of your internet connection MEGAcmd can use, so a
-    big sync or backup does not slow down everything else on your network.
+    These settings are optional. Notifications use Unraid's own notification system: a bell
+    icon, plus email if you have email notifications on. You can turn each notification
+    type on or off. The watchdog checks in at the interval you choose here. At each
+    check, it does these tasks:
+    <ul>
+      <li>Restart the background service if it crashes (when that setting is on)</li>
+      <li>Reapply file and folder permissions</li>
+      <li>Check for sync or login problems</li>
+      <li>Protect sync folders from Unraid's mover</li>
+    </ul>
+    Permissions control what MEGAcmd sets on newly created files and folders. Speed limits
+    cap how much of your internet connection MEGAcmd can use, so a big sync or backup
+    does not slow down everything else on your network.
   </blockquote>
 </div>
 

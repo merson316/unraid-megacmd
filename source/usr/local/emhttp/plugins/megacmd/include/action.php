@@ -130,7 +130,7 @@ switch ($action) {
     $branch = getPlgEntity('branch');
     $latest = getLatestMegacmdVersion($codename);
     if ($latest === "" || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/', $latest)) {
-      $message = "Could not determine the latest MEGAcmd version, update aborted.";
+      $message = "Could not determine the latest MEGAcmd version. The update stopped.";
       break;
     }
     $rawbase = "https://raw.githubusercontent.com/$github/$branch";
@@ -151,7 +151,7 @@ switch ($action) {
     }
     $message = setPlgEntity('megacmd_version', $latest)
       ? "Updated MEGAcmd to $latest."
-      : "Installed MEGAcmd $latest but could not persist the version pin in megacmd.plg, so it will revert to the old version on next reboot.";
+      : "Installed MEGAcmd $latest, but could not save the version number in megacmd.plg. MEGAcmd will revert to the old version after the next reboot.";
     $message .= "\n" . implode("\n", $o3);
     unset($_SESSION['megacmd_latest_checked']);
     exec("$rc start 2>&1"); sleep(1);
