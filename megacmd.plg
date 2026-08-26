@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.08.15.3">
+<!ENTITY version "2026.08.26">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,11 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.08.26
+- Fixed array disks that hold part of a sync's local folder staying spun up. The mover
+  protection rewrote its marker file at every watchdog check, and each rewrite reset
+  Unraid's spin-down timer.
+
 ###2026.08.15.3
 - Clarified wording in a few places on the settings page and in notifications, where a sentence
   could be read more than one way.
@@ -185,7 +190,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>05dab49ead7a1f64701666d89e9f495d</MD5>
+    <MD5>c77ca56e92a1d11d72e1352dbd3b5c4d</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
@@ -232,14 +237,14 @@ $APPDATA_ROOT/megacmd/home/watchdog.log {
 }
 LOGROTATEEOF
 
-# Watchdog (auto-restart + failure notifications, every 5 min) and a daily update check.
+# Watchdog (auto-restart + failure notifications) and a daily update check.
 # /boot/config/plugins/&name;/*.cron is combined into the real crontab by update_cron.
-mkdir -p /boot/config/plugins/&name;
-cat &gt; /boot/config/plugins/&name;/megacmd.cron &lt;&lt;'CRONEOF'
-*/5 * * * * &plugdir;/scripts/watchdog.php &gt;/dev/null 2&gt;&amp;1
-17 3 * * * &plugdir;/scripts/check-update-notify.php &gt;/dev/null 2&gt;&amp;1
-CRONEOF
-/usr/local/sbin/update_cron
+# This block runs on every install AND on every boot (rc.local reinstalls every .plg), so it
+# must not hardcode the watchdog interval: writing a fixed */5 here silently threw away the
+# user's configured interval on each boot. regenerateCron() is the same function the settings
+# page calls when that interval is changed, and it falls back to the 5-minute default when no
+# config file exists yet, which is exactly right for a first install.
+/usr/bin/php -r 'require_once "&plugdir;/include/common.php"; regenerateCron();'
 
 # Safe to call unconditionally on every (re)install, since rc.megacmd itself now refuses to
 # start until the resolved appdata parent is a genuine mount, not just a directory that

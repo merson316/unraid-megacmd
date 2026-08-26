@@ -233,10 +233,23 @@ function applySpeedlimit() {
 // while every real file inside still gets moved normally, and it's filesystem-agnostic (unlike a ZFS
 // dataset mountpoint, mover's other, narrower exemption). Harmless if mover/Mover Tuning isn't
 // in use, or the share was never going to be touched by it anyway.
+//
+// Mover Tuning only cares that the file EXISTS; it never reads its timestamp. Creating it with a
+// bare touch() would therefore be a no-op in intent but not in effect: touch() on an existing file
+// still rewrites the inode's mtime, which on an array disk is a real platter write plus a parity
+// write, and every write resets emhttpd's spin-down timer for both disks. Called on a schedule
+// (see protectAllSyncRootsFromMoverCleanup) that is always shorter than any sane spin-down delay,
+// so an unconditional touch pins every disk holding a copy of a sync root permanently spun up.
+// Hence create-if-missing, never re-touch.
+function ensurePlaceholder($dir) {
+  $placeholder = "$dir/.placeholder";
+  if (!file_exists($placeholder)) @touch($placeholder);
+}
+
 function protectSyncRootFromMoverCleanup($localPath) {
   $localPath = rtrim($localPath, '/');
   if ($localPath !== '' && is_dir($localPath)) {
-    @touch("$localPath/.placeholder");
+    ensurePlaceholder($localPath);
   }
 }
 
@@ -257,7 +270,7 @@ function protectAllSyncRootsFromMoverCleanup() {
     foreach ($mounts as $mount) {
       if (in_array(basename($mount), $excluded, true)) continue;
       $candidate = "$mount/$relative";
-      if (is_dir($candidate)) @touch("$candidate/.placeholder");
+      if (is_dir($candidate)) ensurePlaceholder($candidate);
     }
   }
 }
