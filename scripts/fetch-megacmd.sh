@@ -31,11 +31,32 @@ curl -fsSL -o "$TMPDIR/pkg.deb" "${BASE_URL}/${DEB_NAME}"
 bsdtar -xf "$TMPDIR/pkg.deb" -C "$TMPDIR" data.tar.xz
 bsdtar -xf "$TMPDIR/data.tar.xz" -C "$TMPDIR" ./usr/bin ./opt/megacmd/lib
 
-mkdir -p /opt/megacmd/bin /opt/megacmd/lib
-cp -a "$TMPDIR/usr/bin/." /opt/megacmd/bin/
-cp -a "$TMPDIR/opt/megacmd/lib/." /opt/megacmd/lib/
+# Copying straight onto a file that is currently executing fails with ETXTBSY ("Text file
+# busy"), and mega-cmd-server is normally running whenever this script runs: the plugin's
+# install block calls it on every install and on every boot, while the service is up. Writing
+# each file under a temporary name in the same directory and renaming it over the target
+# avoids that entirely, since rename(2) only replaces the directory entry and a process that
+# is already running keeps its own open inode until it is restarted. Callers that need the new
+# binaries to actually be in use (the settings page's "Update to X.Y.Z" action) stop and start
+# the service around this script themselves.
+install_over() {
+  local src="$1" dest="$2" mode="$3"
+  local tmp="${dest}.new.$$"
+  mkdir -p "$(dirname "$dest")"
+  rm -rf "$tmp"
+  cp -a "$src" "$tmp"                 # -a keeps symlinks as symlinks (the ffmpeg libs use them)
+  [ -L "$tmp" ] || chmod "$mode" "$tmp"
+  mv -f "$tmp" "$dest"
+}
 
-chmod -R a+rx /opt/megacmd/bin
-find /opt/megacmd/lib -type f -exec chmod 644 {} \;
+mkdir -p /opt/megacmd/bin /opt/megacmd/lib
+
+while IFS= read -r -d '' f; do
+  install_over "$f" "/opt/megacmd/bin/${f#$TMPDIR/usr/bin/}" 0755
+done < <(find "$TMPDIR/usr/bin" -mindepth 1 \( -type f -o -type l \) -print0)
+
+while IFS= read -r -d '' f; do
+  install_over "$f" "/opt/megacmd/lib/${f#$TMPDIR/opt/megacmd/lib/}" 0644
+done < <(find "$TMPDIR/opt/megacmd/lib" -mindepth 1 \( -type f -o -type l \) -print0)
 
 echo "Installed MEGAcmd ${MEGACMD_VERSION} (${DEB_NAME}) to /opt/megacmd"

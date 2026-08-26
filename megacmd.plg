@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.08.26">
+<!ENTITY version "2026.08.26.2">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,12 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.08.26.2
+- The watchdog interval you set on the settings page is no longer reset to 5 minutes at every
+  boot.
+- Fixed the MEGAcmd install step stopping early when the service was already running, which is
+  the normal case at boot.
+
 ###2026.08.26
 - Fixed array disks that hold part of a sync's local folder staying spun up. The mover
   protection rewrote its marker file at every watchdog check, and each rewrite reset
