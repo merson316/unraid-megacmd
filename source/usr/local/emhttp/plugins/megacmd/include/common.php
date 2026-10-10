@@ -50,6 +50,9 @@ $cfgDefaults = [
   "NOTIFY_QUOTA" => "yes",
   "NOTIFY_STORAGE" => "yes",
   "STORAGE_WARN_PCT" => "90",
+  // Written by fetch-megacmd.sh, not by the settings form: the MEGAcmd version last installed,
+  // so a plugin update (which replaces megacmd.plg and its pinned version) does not revert it.
+  "MEGACMD_VERSION" => "",
   "NOTIFY_UPDATE" => "yes",
   "WATCHDOG" => "yes",
   "WATCHDOG_INTERVAL" => "5",
@@ -142,6 +145,14 @@ function getRecentLogs($lines = 200) {
     $out .= "\n";
   }
   return sanitizeTerminalOutput($out);
+}
+
+// The MEGAcmd version actually installed right now (fetch-megacmd.sh records it at each install).
+// Can differ from the version pinned in megacmd.plg, e.g. after MEGA dropped the pinned version
+// from its repo and the installer fell back to another one.
+function getInstalledMegacmdVersion() {
+  $v = trim((string)@file_get_contents("/opt/megacmd/VERSION"));
+  return $v !== "" ? $v : getPlgEntity("megacmd_version");
 }
 
 function getPlgEntity($entityName) {

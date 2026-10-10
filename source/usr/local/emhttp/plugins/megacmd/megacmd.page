@@ -9,7 +9,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $message = $_SESSION['megacmd_message'] ?? "";
 unset($_SESSION['megacmd_message']);
 
-$installedMegacmdVersion = getPlgEntity('megacmd_version');
+$installedMegacmdVersion = getInstalledMegacmdVersion();
 $latestMegacmdVersion = $_SESSION['megacmd_latest_checked'] ?? null;
 $cfg = getConfig();
 $storageReady = appdataStorageReady();

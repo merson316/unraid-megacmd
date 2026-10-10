@@ -23,14 +23,31 @@ $storageWarnedMarker = "$megaHome/.watchdog_storage_warned";
 // the array stopping, and without this check a watchdog run landing mid-shutdown would restart
 // the service right as Unraid is trying to unmount shares, stalling the reboot.
 if (($cfg["WATCHDOG"] ?? "yes") === "yes" && !file_exists("/var/run/megacmd.stopped") && !serviceRunning()) {
-  exec("/etc/rc.d/rc.megacmd start >/dev/null 2>&1");
-  logWatchdog("Service was not running. MEGAcmd restarted it automatically.");
-  notify(
-    "MEGAcmd service restarted",
-    "mega-cmd-server was not running. MEGAcmd restarted it automatically.",
-    "NOTIFY_RESTART",
-    "warning"
-  );
+  exec("/etc/rc.d/rc.megacmd start 2>&1", $startOut);
+  // A start can fail too, e.g. when MEGAcmd itself could not be installed at boot. Report that
+  // once (marker on tmpfs, so it resets at reboot) rather than claiming a restart at each check.
+  $startFailedMarker = "/var/run/megacmd.startfailed";
+  if (serviceRunning()) {
+    @unlink($startFailedMarker);
+    logWatchdog("Service was not running. MEGAcmd restarted it automatically.");
+    notify(
+      "MEGAcmd service restarted",
+      "mega-cmd-server was not running. MEGAcmd restarted it automatically.",
+      "NOTIFY_RESTART",
+      "warning"
+    );
+  } elseif (!file_exists($startFailedMarker)) {
+    touch($startFailedMarker);
+    $reason = trim(implode(" ", $startOut));
+    if (!is_executable("/opt/megacmd/bin/mega-cmd-server")) $reason = "MEGAcmd is not installed. It could not be downloaded or installed at boot.";
+    logWatchdog("Service is not running and could not be started: $reason");
+    notify(
+      "MEGAcmd service cannot start",
+      "mega-cmd-server is not running, and MEGAcmd could not start it: $reason Go to Settings > MEGAcmd for details.",
+      "NOTIFY_RESTART",
+      "alert"
+    );
+  }
 }
 
 if (!serviceRunning()) exit(0);

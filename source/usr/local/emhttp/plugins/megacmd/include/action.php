@@ -127,7 +127,8 @@ switch ($action) {
       "SPEEDLIMIT_UP" => trim($_POST['speedlimit_up'] ?? ''),
       "SPEEDLIMIT_DOWN" => trim($_POST['speedlimit_down'] ?? ''),
     ];
-    saveConfig($newCfg);
+    // Merge over the current settings, so keys this form does not show (MEGACMD_VERSION) survive.
+    saveConfig(array_merge(getConfig(), $newCfg));
     applySpeedlimit();
     applyPermissions();
     regenerateCron();
@@ -135,7 +136,7 @@ switch ($action) {
     break;
   case 'checkmegacmdupdate':
     $codename = getPlgEntity('megacmd_repo_codename');
-    $installed = getPlgEntity('megacmd_version');
+    $installed = getInstalledMegacmdVersion();
     $latest = getLatestMegacmdVersion($codename);
     if ($latest === "") {
       $_SESSION['megacmd_latest_checked'] = null;
@@ -149,24 +150,13 @@ switch ($action) {
     break;
   case 'updatemegacmd':
     $codename = getPlgEntity('megacmd_repo_codename');
-    $github = getPlgEntity('github');
-    $branch = getPlgEntity('branch');
     $latest = getLatestMegacmdVersion($codename);
     if ($latest === "" || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/', $latest)) {
       $message = "Could not determine the latest MEGAcmd version. The update stopped.";
       break;
     }
-    $rawbase = "https://raw.githubusercontent.com/$github/$branch";
-    $tmp = "/tmp/megacmd-fetch-" . uniqid() . ".sh";
-    exec("curl -fsSL -o " . escapeshellarg($tmp) . " " . escapeshellarg("$rawbase/scripts/fetch-megacmd.sh") . " 2>&1", $o1, $r1);
-    if ($r1 !== 0) {
-      $message = "Failed to fetch the update script:\n" . implode("\n", $o1);
-      break;
-    }
-    exec("chmod +x " . escapeshellarg($tmp));
     exec("$rc stop 2>&1");
-    exec(escapeshellarg($tmp) . " " . escapeshellarg($codename) . " " . escapeshellarg($latest) . " 2>&1", $o3, $r3);
-    @unlink($tmp);
+    exec("bash " . escapeshellarg(__DIR__ . "/../scripts/fetch-megacmd.sh") . " " . escapeshellarg($codename) . " " . escapeshellarg($latest) . " 2>&1", $o3, $r3);
     if ($r3 !== 0) {
       exec("$rc start 2>&1");
       $message = "Update to $latest failed:\n" . implode("\n", $o3);

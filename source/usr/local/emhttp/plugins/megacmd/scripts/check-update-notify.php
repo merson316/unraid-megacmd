@@ -9,7 +9,7 @@ $cfg = getConfig();
 if (($cfg["NOTIFY_UPDATE"] ?? "yes") !== "yes") exit(0);
 
 $codename = getPlgEntity("megacmd_repo_codename");
-$installed = getPlgEntity("megacmd_version");
+$installed = getInstalledMegacmdVersion();
 $latest = getLatestMegacmdVersion($codename);
 if ($latest === "" || $installed === "") exit(0);
 

@@ -1,34 +1,76 @@
 #!/bin/bash
-# Downloads MEGAcmd's official prebuilt amd64 package straight from MEGA's own
-# repo and installs its binaries + private libs under /opt/megacmd. No compiling,
-# no vendoring MEGA's binaries in our own git repo. Always pulled fresh from
-# upstream, pinned to a specific MEGAcmd release.
+# Installs MEGAcmd's official prebuilt amd64 package (binaries + private libs) under
+# /opt/megacmd. No compiling, no vendoring MEGA's binaries in our own git repo.
 #
-# Usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix>
-# Example: fetch-megacmd.sh Debian_11 2.5.2
+# The .deb is kept on the flash drive after the first download, and later installs (every boot
+# runs this again) use that copy. MEGA's repo only lists its newest release, so a version it
+# has dropped can no longer be downloaded; without the cached copy, a boot after that (or a boot
+# without internet access) would leave no MEGAcmd installed and the service could not start.
+#
+# Order: cached copy of the requested version, then MEGA's repo, then any cached version, then
+# the newest version in MEGA's repo. The flash drive is only written when a new package is
+# downloaded (the old one is deleted then) or when the installed version changes.
+#
+# Usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix> [cache-dir]
+# Example: fetch-megacmd.sh Debian_11 2.6.0
 set -euo pipefail
 
-REPO_CODENAME="${1:?usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix>}"
-MEGACMD_VERSION="${2:?usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix>}"
+REPO_CODENAME="${1:?usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix> [cache-dir]}"
+MEGACMD_VERSION="${2:?usage: fetch-megacmd.sh <debian-repo-codename> <megacmd-version-prefix> [cache-dir]}"
+CACHE_DIR="${3:-/boot/config/plugins/megacmd}"
+CFG="/boot/config/plugins/megacmd/megacmd.cfg"
 
 BASE_URL="https://mega.nz/linux/repo/${REPO_CODENAME}/amd64"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
-echo "Looking up megacmd_${MEGACMD_VERSION}-*_amd64.deb under ${BASE_URL} ..."
-DEB_NAME="$(curl -fsSL "${BASE_URL}/" \
-  | grep -oE "megacmd_${MEGACMD_VERSION}-[0-9.]+_amd64\.deb" \
-  | head -n1)"
+# Newest cached .deb whose version matches $1 (a version prefix, or [0-9]* for any).
+cached_deb() {
+  { find "$CACHE_DIR" -maxdepth 1 -name "megacmd_$1-*_amd64.deb" 2>/dev/null || true; } | sort -V | tail -n1
+}
 
-if [ -z "$DEB_NAME" ]; then
-  echo "Could not find a megacmd ${MEGACMD_VERSION} package under ${BASE_URL}" >&2
-  exit 1
+repo_listing() {
+  curl -fsSL --max-time 30 "${BASE_URL}/" 2>/dev/null \
+    | grep -oE 'megacmd_[0-9.]+-[0-9.]+_amd64\.deb' | sort -uV || true
+}
+
+DEB="$(cached_deb "$MEGACMD_VERSION")"
+DEB_NAME=""
+if [ -n "$DEB" ]; then
+  echo "Using cached $(basename "$DEB")"
+else
+  echo "Looking up megacmd_${MEGACMD_VERSION}-*_amd64.deb under ${BASE_URL} ..."
+  LISTING="$(repo_listing)"
+  DEB_NAME="$(grep -F "megacmd_${MEGACMD_VERSION}-" <<<"$LISTING" | tail -n1 || true)"
+  if [ -z "$DEB_NAME" ]; then
+    DEB="$(cached_deb '[0-9]*')"
+    if [ -n "$DEB" ]; then
+      echo "MEGAcmd ${MEGACMD_VERSION} is not available from MEGA. Using cached $(basename "$DEB") instead."
+    else
+      DEB_NAME="$(tail -n1 <<<"$LISTING")"
+      if [ -z "$DEB_NAME" ]; then
+        echo "ERROR: could not reach ${BASE_URL}, and no MEGAcmd package is cached in ${CACHE_DIR}." >&2
+        exit 1
+      fi
+      echo "MEGAcmd ${MEGACMD_VERSION} is no longer available from MEGA. Installing ${DEB_NAME} instead."
+    fi
+  fi
 fi
 
-echo "Fetching ${DEB_NAME} ..."
-curl -fsSL -o "$TMPDIR/pkg.deb" "${BASE_URL}/${DEB_NAME}"
+if [ -z "$DEB" ]; then
+  echo "Fetching ${DEB_NAME} ..."
+  curl -fsSL --max-time 600 -o "$TMPDIR/$DEB_NAME" "${BASE_URL}/${DEB_NAME}"
+  bsdtar -tf "$TMPDIR/$DEB_NAME" data.tar.xz >/dev/null   # refuse a truncated or bogus download
+  mkdir -p "$CACHE_DIR"
+  cp "$TMPDIR/$DEB_NAME" "$CACHE_DIR/$DEB_NAME.part"
+  mv -f "$CACHE_DIR/$DEB_NAME.part" "$CACHE_DIR/$DEB_NAME"
+  find "$CACHE_DIR" -maxdepth 1 -name 'megacmd_*_amd64.deb' ! -name "$DEB_NAME" -delete
+  DEB="$CACHE_DIR/$DEB_NAME"
+fi
 
-bsdtar -xf "$TMPDIR/pkg.deb" -C "$TMPDIR" data.tar.xz
+INSTALLED_VERSION="$(basename "$DEB" | sed -E 's/^megacmd_([0-9.]+)-.*/\1/')"
+
+bsdtar -xf "$DEB" -C "$TMPDIR" data.tar.xz
 bsdtar -xf "$TMPDIR/data.tar.xz" -C "$TMPDIR" ./usr/bin ./opt/megacmd/lib
 
 # Copying straight onto a file that is currently executing fails with ETXTBSY ("Text file
@@ -59,4 +101,19 @@ while IFS= read -r -d '' f; do
   install_over "$f" "/opt/megacmd/lib/${f#$TMPDIR/opt/megacmd/lib/}" 0644
 done < <(find "$TMPDIR/opt/megacmd/lib" -mindepth 1 \( -type f -o -type l \) -print0)
 
-echo "Installed MEGAcmd ${MEGACMD_VERSION} (${DEB_NAME}) to /opt/megacmd"
+# What is actually installed, for the settings page and the update check (RAM, rewritten at
+# each boot).
+echo "$INSTALLED_VERSION" > /opt/megacmd/VERSION
+
+# Remember the installed version in the plugin's settings file, so that the next boot installs
+# the same version even after a plugin update replaces megacmd.plg (and its pinned version).
+# Written only when it changes.
+if [ -d "$(dirname "$CFG")" ] && ! grep -qx "MEGACMD_VERSION=\"$INSTALLED_VERSION\"" "$CFG" 2>/dev/null; then
+  if grep -q '^MEGACMD_VERSION=' "$CFG" 2>/dev/null; then
+    sed -i "s/^MEGACMD_VERSION=.*/MEGACMD_VERSION=\"$INSTALLED_VERSION\"/" "$CFG"
+  else
+    echo "MEGACMD_VERSION=\"$INSTALLED_VERSION\"" >> "$CFG"
+  fi
+fi
+
+echo "Installed MEGAcmd ${INSTALLED_VERSION} ($(basename "$DEB")) to /opt/megacmd"

@@ -15,7 +15,7 @@ $errorCount = $loggedIn ? count(array_filter(megaListSyncsWithError(), function 
   return $s["error"] !== "" && strtoupper($s["error"]) !== "NO";
 })) : 0;
 $storage = $loggedIn ? megaGetAccountStorage() : null;
-$version = getPlgEntity('megacmd_version');
+$version = getInstalledMegacmdVersion();
 
 $statusText = !$running ? _('Stopped') : ($loggedIn ? _('Logged in') : _('Not logged in'));
 $statusColor = !$running ? '#a44' : ($loggedIn ? '#4a4' : '#a84');

@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.10.10">
-<!ENTITY megacmd_version "2.5.2">
+<!ENTITY version "2026.10.10.2">
+<!ENTITY megacmd_version "2.6.0">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
@@ -14,6 +14,18 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.10.10.2
+- Fixed the service not starting after a reboot. MEGA no longer offers MEGAcmd 2.5.2 for
+  download, so the plugin could not install it.
+- The MEGAcmd package is now kept on the flash drive, so a reboot no longer depends on MEGA
+  still offering that version, or on internet access.
+- If the MEGAcmd version that the plugin asks for is no longer available, the newest one is
+  installed instead.
+- A MEGAcmd update made from the settings page is no longer undone by the next plugin update.
+- The plugin now reports clearly when MEGAcmd could not be installed or the service could not
+  start, instead of reporting success.
+- Updated the default MEGAcmd version to 2.6.0.
+
 ###2026.10.10
 - Added a notification when your MEGA storage is nearly full, with a threshold you can set.
 - A sync that MEGA pauses because your storage is full now gets its own notification, which
@@ -205,16 +217,25 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>fc95678e4ba22e9e41e7d1fec4260d05</MD5>
+    <MD5>dbc120f98b1f9ad6a30715f8644ce5c1</MD5>
   </FILE>
 
-  <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->
+  <!-- MEGAcmd's own binaries, from MEGA's official repo (never stored in this repo). The
+       downloaded package is cached on the flash drive, so a boot does not depend on MEGA still
+       offering that version (see fetch-megacmd.sh). -->
   <FILE Run="/bin/bash">
     <INLINE>
-curl -fsSL -o /tmp/megacmd-fetch.sh "&rawbase;/scripts/fetch-megacmd.sh"
-chmod +x /tmp/megacmd-fetch.sh
-/tmp/megacmd-fetch.sh "&megacmd_repo_codename;" "&megacmd_version;"
-rm -f /tmp/megacmd-fetch.sh
+# Prefer the installer from GitHub, so an installer fix reaches every server at its next boot;
+# fall back to the copy inside the plugin package when GitHub cannot be reached.
+FETCH=/tmp/megacmd-fetch.sh
+curl -fsSL --max-time 30 -o $FETCH "&rawbase;/scripts/fetch-megacmd.sh" || cp &plugdir;/scripts/fetch-megacmd.sh $FETCH
+# A MEGAcmd update from the settings page is recorded in megacmd.cfg. A plugin update replaces
+# this file and its pinned version, so install whichever of the two is newer.
+WANT="&megacmd_version;"
+SAVED="$(grep -oP '(?&lt;=^MEGACMD_VERSION=")[^"]*' /boot/config/plugins/&name;/&name;.cfg 2&gt;/dev/null)"
+[ -n "$SAVED" ] &amp;&amp; WANT="$(printf '%s\n%s\n' "$WANT" "$SAVED" | sort -V | tail -n1)"
+bash $FETCH "&megacmd_repo_codename;" "$WANT" || echo "ERROR: MEGAcmd $WANT could not be installed (see above)."
+rm -f $FETCH
 </INLINE>
   </FILE>
 
@@ -267,9 +288,14 @@ LOGROTATEEOF
 &plugdir;/event/disks_mounted
 echo ""
 echo "----------------------------------------------------"
-echo " MEGAcmd &megacmd_version; installed."
-echo " Configure login and syncs under Settings > MEGAcmd."
-echo " mega-* commands are now on PATH in any terminal."
+if [ -x /opt/megacmd/bin/mega-cmd-server ]; then
+  echo " MEGAcmd $(cat /opt/megacmd/VERSION 2&gt;/dev/null) installed."
+  echo " Configure login and syncs under Settings > MEGAcmd."
+  echo " mega-* commands are now on PATH in any terminal."
+else
+  echo " ERROR: MEGAcmd is not installed, so the service cannot start."
+  echo " Check the messages above, then reinstall the plugin."
+fi
 echo "----------------------------------------------------"
 echo ""
 </INLINE>
