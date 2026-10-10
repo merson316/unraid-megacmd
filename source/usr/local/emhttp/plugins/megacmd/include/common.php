@@ -48,6 +48,8 @@ $cfgDefaults = [
   "NOTIFY_SYNCERROR" => "yes",
   "NOTIFY_FSID" => "yes",
   "NOTIFY_QUOTA" => "yes",
+  "NOTIFY_STORAGE" => "yes",
+  "STORAGE_WARN_PCT" => "90",
   "NOTIFY_UPDATE" => "yes",
   "WATCHDOG" => "yes",
   "WATCHDOG_INTERVAL" => "5",
@@ -205,13 +207,22 @@ function fixTransferTypeAlignment($text) {
   return preg_replace('/^([DUSB]{2})\s+/m', '$1   ', $text);
 }
 
+// While the account is over its storage quota, MEGAcmd prints a boxed "You have exceeded your
+// available storage" banner above the output of every command. Every parser here expects the
+// command's own output (often with a header row as its first line), so remove the box first.
+// The storage card on the settings page reports the same condition in its own words.
+function stripMegaBanner($text) {
+  return preg_replace('/^(?: -{20,}|\|\s.*\s\|)\n/m', '', $text . "\n");
+}
+
 function megaExec($args) {
   global $megaHome;
   $cmd = "env HOME=" . escapeshellarg($megaHome) .
          " LD_LIBRARY_PATH=/opt/megacmd/lib PATH=/opt/megacmd/bin:\$PATH " .
          "setpriv --reuid=99 --regid=100 --clear-groups -- bash -c " . escapeshellarg($args) . " 2>&1";
   exec($cmd, $out, $ret);
-  return array("output" => sanitizeTerminalOutput(implode("\n", $out)), "code" => $ret);
+  $output = rtrim(stripMegaBanner(implode("\n", $out)), "\n");
+  return array("output" => sanitizeTerminalOutput($output), "code" => $ret);
 }
 
 // Re-applies the configured upload/download speed limits. MEGAcmd only remembers these for
@@ -354,12 +365,20 @@ function megaListBackups() {
   return $backups;
 }
 
-// Parses `mega-df` for the account's overall storage usage (used by the Dashboard tile). Returns
-// null if the figures aren't present (e.g. not logged in, or MEGA changes this output format).
+// Parses `mega-df` for the account's overall storage usage (used by the Dashboard tile, the
+// storage card and the watchdog's storage warning). Returns null if the figures aren't present
+// (e.g. not logged in, or MEGA changes this output format). The rubbish bin and old file
+// versions both count against the quota, so they are reported separately: they are the space a
+// user can free without touching any file they still have.
 function megaGetAccountStorage() {
   $r = megaExec("mega-df");
   if (!preg_match('/USED STORAGE:\s*(\d+)\s+([\d.]+)% of (\d+)/', $r["output"], $m)) return null;
-  return ["usedBytes" => (int)$m[1], "percent" => (float)$m[2], "totalBytes" => (int)$m[3]];
+  $bin = preg_match('/Rubbish bin:\s*(\d+)/', $r["output"], $b) ? (int)$b[1] : 0;
+  $versions = preg_match('/file versions:\s*(\d+)/', $r["output"], $v) ? (int)$v[1] : 0;
+  return [
+    "usedBytes" => (int)$m[1], "percent" => (float)$m[2], "totalBytes" => (int)$m[3],
+    "binBytes" => $bin, "versionsBytes" => $versions,
+  ];
 }
 
 // Short human-readable byte size (e.g. "27.4 GB") for compact dashboard-tile display, distinct
@@ -423,4 +442,39 @@ function selfHealSyncFsid($syncId) {
   protectSyncRootFromMoverCleanup($target["local"]);
   $add = megaExec("mega-sync " . escapeshellarg($target["local"]) . " " . escapeshellarg($target["remote"]));
   return trim($del["output"] . "\n" . $add["output"]);
+}
+
+// Syncs that MEGAcmd disabled because the account reached its storage quota. While a sync is in
+// this state nothing moves in either direction, including deletions, so files removed from the
+// local folder stay on MEGA and keep using the quota.
+function megaListSyncsOverQuota() {
+  $syncs = [];
+  foreach (megaListSyncsWithError() as $s) {
+    if (stripos($s["error"], "storage quota") !== false) $syncs[] = $s;
+  }
+  return $syncs;
+}
+
+// Files under a sync's remote folder that no longer exist in its local folder, as
+// ['path' => remote path, 'bytes' => size]. When a sync paused by the storage quota resumes,
+// MEGAcmd treats each of these as a local deletion and moves the cloud copy to the rubbish
+// bin, so the settings page lists them before the user resumes. `mega-ls -lr` (not `mega-find`)
+// because it gives exact byte sizes: one "<folder>:" header per folder, then FLAGS VERS SIZE
+// DATE TIME NAME rows, where a file's FLAGS start with "-".
+function megaListCloudOnlyFiles($local, $remote) {
+  $remote = rtrim($remote, "/");
+  $local = rtrim($local, "/");
+  $r = megaExec("mega-ls -lr " . escapeshellarg($remote));
+  $files = [];
+  $dir = $remote;
+  foreach (explode("\n", $r["output"]) as $line) {
+    if (preg_match('#^(/.*):$#', $line, $m)) { $dir = rtrim($m[1], "/"); continue; }
+    if (!preg_match('/^-\S{3}\s+\S+\s+(\d+)\s+\d{2}\w{3}\d{4} \d{2}:\d{2}:\d{2} (.*)$/', $line, $m)) continue;
+    $path = "$dir/$m[2]";
+    if (strpos($path, "$remote/") !== 0) continue;
+    if (!file_exists($local . substr($path, strlen($remote)))) {
+      $files[] = ["path" => $path, "bytes" => (int)$m[1]];
+    }
+  }
+  return $files;
 }

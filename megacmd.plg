@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "megacmd">
 <!ENTITY author "merson316">
-<!ENTITY version "2026.08.26.2">
+<!ENTITY version "2026.10.10">
 <!ENTITY megacmd_version "2.5.2">
 <!ENTITY megacmd_repo_codename "Debian_11">
 <!ENTITY launch "Settings/megacmd">
@@ -14,6 +14,15 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&rawbase;/megacmd.plg" icon="icon.png" support="https://github.com/&github;">
   <CHANGES>
+###2026.10.10
+- Added a notification when your MEGA storage is nearly full, with a threshold you can set.
+- A sync that MEGA pauses because your storage is full now gets its own notification, which
+  explains that local deletions no longer free space on MEGA while the sync is paused.
+- Added a Cloud storage card that shows usage and rubbish bin size. It lets you empty the
+  rubbish bin and lists the cloud files a paused sync will remove before you resume it.
+- Fixed notifications and sync status reading the wrong data while the account was over its
+  storage limit.
+
 ###2026.08.26.2
 - The watchdog interval you set on the settings page is no longer reset to 5 minutes at every
   boot.
@@ -196,7 +205,7 @@ rm -f $(ls /boot/config/plugins/&name;/&name;-plugin-*-x86_64-*.txz 2&gt;/dev/nu
   <!-- Our own plugin logic: rc.d script, webGUI page, event hooks -->
   <FILE Name="&pkgpath;" Run="upgradepkg --install-new">
     <URL>https://raw.githubusercontent.com/&github;/&branch;/dist/megacmd-plugin-&version;-x86_64-1.txz</URL>
-    <MD5>c77ca56e92a1d11d72e1352dbd3b5c4d</MD5>
+    <MD5>fc95678e4ba22e9e41e7d1fec4260d05</MD5>
   </FILE>
 
   <!-- MEGAcmd's own binaries, fetched fresh from MEGA's official repo (never stored in this repo) -->

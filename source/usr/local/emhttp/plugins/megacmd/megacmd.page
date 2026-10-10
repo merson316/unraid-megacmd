@@ -23,6 +23,15 @@ $syncHistory = $running && $loggedIn
   : "";
 $syncs = $running && $loggedIn ? megaListSyncs() : [];
 $fsidSyncs = $running && $loggedIn ? megaListSyncsWithFsidMismatch() : [];
+$quotaSyncs = $running && $loggedIn ? megaListSyncsOverQuota() : [];
+$storage = $running && $loggedIn ? megaGetAccountStorage() : null;
+$storageWarnPct = (int)$cfg['STORAGE_WARN_PCT'];
+$storageFull = $storage !== null && $storage['percent'] >= 100;
+$showStorageCard = $quotaSyncs || ($storage !== null && $storageWarnPct > 0 && $storage['percent'] >= $storageWarnPct);
+foreach ($quotaSyncs as $i => $s) {
+  $quotaSyncs[$i]['cloudOnly'] = megaListCloudOnlyFiles($s['local'], $s['remote']);
+  $quotaSyncs[$i]['cloudOnlyBytes'] = array_sum(array_column($quotaSyncs[$i]['cloudOnly'], 'bytes'));
+}
 $remoteDirs = $loggedIn ? megaListRemoteDirs("/") : [];
 $backupList = $running && $loggedIn ? megaExec("mega-backup -l --path-display-size=200")["output"] : "";
 $backups = $running && $loggedIn ? megaListBackups() : [];
@@ -213,6 +222,60 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
 <? if ($running && $loggedIn): ?>
 <h2 class="megacmd-group-title">Syncs &amp; Backups</h2>
 <div class="megacmd-group megacmd-group-syncs">
+
+<? if ($showStorageCard): ?>
+<div class="megacmd-box">
+  <h3>Cloud storage</h3>
+  <? if ($storage !== null): ?>
+    <p>Used: <strong><?= formatBytesShort($storage['usedBytes']) ?></strong> of <?= formatBytesShort($storage['totalBytes']) ?>
+      (<span class="<?= $storageFull ? 'megacmd-status-bad' : '' ?>"><?= htmlspecialchars($storage['percent']) ?>%</span>).
+      Rubbish bin: <?= formatBytesShort($storage['binBytes']) ?>. Old file versions: <?= formatBytesShort($storage['versionsBytes']) ?>.</p>
+  <? endif; ?>
+  <? if ($storage !== null && $storage['binBytes'] > 0): ?>
+    <p class="megacmd-warning">Emptying the rubbish bin deletes everything in it <strong>permanently</strong>.
+      This includes cloud copies that a sync moved there after you deleted a file locally.</p>
+    <form class="megacmd-ajax-form" method="post">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+      <input type="hidden" name="action" value="emptyrubbish">
+      <button type="submit">Empty rubbish bin (<?= formatBytesShort($storage['binBytes']) ?>)</button>
+    </form>
+  <? endif; ?>
+  <? foreach ($quotaSyncs as $s): ?>
+    <h4>Paused: <?= htmlspecialchars($s['local']) ?> &rarr; <?= htmlspecialchars($s['remote']) ?></h4>
+    <? if ($s['cloudOnly']): ?>
+      <p class="megacmd-warning"><strong><?= count($s['cloudOnly']) === 1 ? '1 file' : count($s['cloudOnly']) . ' files' ?>
+        (<?= formatBytesShort($s['cloudOnlyBytes']) ?>) on MEGA <?= count($s['cloudOnly']) === 1 ? 'is' : 'are' ?> no longer in the local folder.</strong>
+        When this sync resumes, MEGA treats them as deleted locally and moves them to its
+        rubbish bin. If you still need any of them, copy them somewhere else first.</p>
+      <div class="megacmd-msg"><?= htmlspecialchars(implode("\n", array_map(function ($f) {
+        return str_pad(formatBytesShort($f['bytes']), 10) . $f['path'];
+      }, $s['cloudOnly']))) ?></div>
+    <? else: ?>
+      <p>Every file on MEGA in this sync also exists in the local folder.</p>
+    <? endif; ?>
+    <form class="megacmd-ajax-form" method="post">
+      <input type="hidden" name="csrf_token" value="<?=$var['csrf_token']?>">
+      <input type="hidden" name="action" value="resumequotasync">
+      <input type="hidden" name="syncid" value="<?= htmlspecialchars($s['id']) ?>">
+      <button type="submit" class="megacmd-stack-btn" <?= $storageFull ? 'disabled' : '' ?>>Resume this sync</button>
+      <? if ($storageFull): ?>
+        <small class="megacmd-hint">Available when your account is below 100%. Empty the rubbish
+          bin, or delete files on MEGA, to free space.</small>
+      <? endif; ?>
+    </form>
+  <? endforeach; ?>
+  <blockquote class="inline_help">
+    This card appears when your MEGA account is nearly full, or when MEGA has paused a sync
+    because the account is full. While a sync is paused, nothing transfers in either
+    direction. A file you delete from the local folder then stays on MEGA and keeps using
+    space. The rubbish bin and old file versions also count toward your limit. To free space,
+    empty the rubbish bin here, or delete files in the MEGA app or website. When the account is
+    below 100%, resume the sync. Before it resumes, this card lists each file on MEGA that is
+    no longer in the local folder. The sync moves those files to the rubbish bin when it
+    resumes.
+  </blockquote>
+</div>
+<? endif; ?>
 
 <div class="megacmd-box">
   <h3>Current syncs</h3>
@@ -433,6 +496,14 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
         A sync is disabled due to a filesystem-identity mismatch</label>
       <label><input type="checkbox" name="notify_quota" value="yes" <?= $cfg['NOTIFY_QUOTA'] === 'yes' ? 'checked' : '' ?>>
         MEGA's bandwidth quota is reached</label>
+      <label><input type="checkbox" name="notify_storage" value="yes" <?= $cfg['NOTIFY_STORAGE'] === 'yes' ? 'checked' : '' ?>>
+        MEGA storage is nearly full, or full
+        <select name="storage_warn_pct" class="megacmd-inline">
+          <? foreach ([75, 80, 85, 90, 95] as $p): ?>
+          <option value="<?=$p?>" <?= $storageWarnPct === $p ? 'selected' : '' ?>>at <?=$p?>%</option>
+          <? endforeach ?>
+          <option value="0" <?= $storageWarnPct === 0 ? 'selected' : '' ?>>only when full</option>
+        </select></label>
       <label><input type="checkbox" name="notify_update" value="yes" <?= $cfg['NOTIFY_UPDATE'] === 'yes' ? 'checked' : '' ?>>
         A newer MEGAcmd version is available</label>
     </div>
@@ -489,6 +560,7 @@ if ($loggedIn && preg_match('/Account e-mail:\s*(.+)/i', trim($whoami), $m)) {
       <li>Restart the background service if it crashes (when that setting is on)</li>
       <li>Reapply file and folder permissions</li>
       <li>Check for sync or login problems</li>
+      <li>Warn when your MEGA storage is nearly full</li>
       <li>Protect sync folders from Unraid's mover</li>
     </ul>
     Permissions control what MEGAcmd sets on newly created files and folders. Speed limits

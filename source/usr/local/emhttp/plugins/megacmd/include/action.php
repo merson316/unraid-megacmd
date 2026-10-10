@@ -81,6 +81,25 @@ switch ($action) {
     $syncId = trim($_POST['syncid'] ?? '');
     $message = $syncId !== '' ? selfHealSyncFsid($syncId) : "No sync selected.";
     break;
+  case 'emptyrubbish':
+    // Permanent: MEGA cannot restore anything removed from the rubbish bin. The settings page
+    // states this next to the button.
+    $r = megaExec("mega-rm -r -f '//bin/*'");
+    $message = trim($r["output"]) !== "" ? $r["output"] : "Rubbish bin emptied.";
+    break;
+  case 'resumequotasync':
+    $syncId = trim($_POST['syncid'] ?? '');
+    $ids = array_column(megaListSyncsOverQuota(), 'id');
+    $storage = megaGetAccountStorage();
+    if (!in_array($syncId, $ids, true)) {
+      $message = "That sync is not paused by the storage quota. It may have resumed already.";
+    } elseif ($storage === null || $storage["percent"] >= 100) {
+      $message = "Your MEGA account is still full. Free some space first, then resume the sync.";
+    } else {
+      $r = megaExec("mega-sync -e " . escapeshellarg($syncId));
+      $message = $r["output"];
+    }
+    break;
   case 'savesettings':
     $watchdogInterval = $_POST['watchdog_interval'] ?? '5';
     if (!in_array($watchdogInterval, ['1', '5', '10', '15', '30', '60'], true)) $watchdogInterval = '5';
@@ -90,12 +109,16 @@ switch ($action) {
     if (!preg_match('/^[0-7]{3}$/', $permFiles) || (int)$permFiles < 600) $permFiles = '666';
     $permFolders = trim($_POST['perm_folders'] ?? '777');
     if (!preg_match('/^[0-7]{3}$/', $permFolders) || (int)$permFolders < 700) $permFolders = '777';
+    $storageWarnPct = $_POST['storage_warn_pct'] ?? '90';
+    if (!in_array($storageWarnPct, ['0', '75', '80', '85', '90', '95'], true)) $storageWarnPct = '90';
     $newCfg = [
       "NOTIFY_RESTART" => ($_POST['notify_restart'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_LOGOUT" => ($_POST['notify_logout'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_SYNCERROR" => ($_POST['notify_syncerror'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_FSID" => ($_POST['notify_fsid'] ?? '') === 'yes' ? 'yes' : 'no',
       "NOTIFY_QUOTA" => ($_POST['notify_quota'] ?? '') === 'yes' ? 'yes' : 'no',
+      "NOTIFY_STORAGE" => ($_POST['notify_storage'] ?? '') === 'yes' ? 'yes' : 'no',
+      "STORAGE_WARN_PCT" => $storageWarnPct,
       "NOTIFY_UPDATE" => ($_POST['notify_update'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG" => ($_POST['watchdog'] ?? '') === 'yes' ? 'yes' : 'no',
       "WATCHDOG_INTERVAL" => $watchdogInterval,

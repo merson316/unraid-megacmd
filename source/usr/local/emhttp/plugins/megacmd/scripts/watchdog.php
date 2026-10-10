@@ -3,7 +3,7 @@
 // Runs every 5 minutes via cron (see megacmd.plg's cron install step). Restarts a crashed
 // service (if enabled) and surfaces problems (unexpected logout, sync errors, MEGA bandwidth
 // quota) as Unraid notifications (if enabled), instead of requiring someone to check the
-// settings page manually.
+// settings page manually. It also warns before the account's storage quota fills up.
 require_once "/usr/local/emhttp/plugins/megacmd/include/common.php";
 
 // Only act once the array is actually up, to avoid noisy failed-start attempts while the
@@ -15,6 +15,7 @@ $cfg = getConfig();
 $loggedInMarker = "$megaHome/.watchdog_loggedin";
 $syncErrorsFile = "$megaHome/.watchdog_sync_errors";
 $logPosFile = "$megaHome/.watchdog_logpos";
+$storageWarnedMarker = "$megaHome/.watchdog_storage_warned";
 
 // A stop() (shutdown's stopping_svcs, or a manual Stop from the settings page) touches this
 // marker. If it's present, the service being down is intentional, not a crash, so don't
@@ -68,7 +69,15 @@ foreach ($syncs as $s) {
   if ($s["error"] !== "" && strtoupper($s["error"]) !== "NO") {
     $currentErrors[] = $s["id"];
     if (!isset($prevErrors[$s["id"]])) {
-      if (stripos($s["error"], "FSID") !== false) {
+      if (stripos($s["error"], "storage quota") !== false) {
+        logWatchdog("Sync paused (MEGA storage full): {$s['local']} -> {$s['remote']}");
+        notify(
+          "MEGA storage full",
+          "Your MEGA account is out of storage, so MEGA paused sync {$s['local']} -> {$s['remote']}. While it is paused, nothing transfers in either direction: files you delete from the local folder stay on MEGA and keep using space. Go to Settings > MEGAcmd to free space and resume the sync.",
+          "NOTIFY_STORAGE",
+          "alert"
+        );
+      } elseif (stripos($s["error"], "FSID") !== false) {
         logWatchdog("Sync disabled (FSID mismatch): {$s['local']} -> {$s['remote']}");
         notify(
           "MEGAcmd sync needs repair",
@@ -89,6 +98,33 @@ foreach ($syncs as $s) {
   }
 }
 file_put_contents($syncErrorsFile, implode("\n", $currentErrors) . "\n");
+
+// Early warning before the storage quota fills up: once MEGA is full it pauses every sync, and
+// then local deletions can no longer free space. Warns once per crossing; the marker clears when
+// usage falls 5 points below the threshold, so usage that hovers near it does not repeat the
+// warning at every check. The marker only changes on a crossing, never at every check.
+$warnPct = (int)($cfg["STORAGE_WARN_PCT"] ?? 90);
+$storage = $warnPct > 0 ? megaGetAccountStorage() : null;
+if ($storage !== null) {
+  if ($storage["percent"] >= $warnPct && !file_exists($storageWarnedMarker)) {
+    $used = formatBytesShort($storage["usedBytes"]);
+    $total = formatBytesShort($storage["totalBytes"]);
+    $bin = formatBytesShort($storage["binBytes"]);
+    $versions = formatBytesShort($storage["versionsBytes"]);
+    logWatchdog("MEGA storage at {$storage['percent']}% ($used of $total).");
+    notify(
+      "MEGA storage nearly full",
+      "Your MEGA account uses $used of $total ({$storage['percent']}%). The rubbish bin uses $bin and old file versions use $versions; both count toward the limit. When the account is full, MEGA pauses your syncs.",
+      "NOTIFY_STORAGE",
+      "warning"
+    );
+    touch($storageWarnedMarker);
+    @chown($storageWarnedMarker, 99);
+    @chgrp($storageWarnedMarker, 100);
+  } elseif ($storage["percent"] < $warnPct - 5 && file_exists($storageWarnedMarker)) {
+    unlink($storageWarnedMarker);
+  }
+}
 
 // MEGA bandwidth quota / other server warnings, scanned incrementally since the last check.
 $logFile = "$megaHome/server.log";
